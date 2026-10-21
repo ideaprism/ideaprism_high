@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdeaPrism Logic Map</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- React Flow -->
+    <script src="https://cdn.jsdelivr.net/npm/reactflow@11/dist/umd/index.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11/dist/style.css" />
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        /* n8n style grid background */
+        .react-flow__background {
+            background-color: #121212 !important;
+        }
+
+        .react-flow__background pattern circle {
+            fill: #333 !important;
+        }
+
+        /* Custom Node Styles */
+        .n8n-node {
+            background: #232323;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 0;
+            min-width: 180px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .n8n-node:hover {
+            border-color: #FF6D5A;
+            /* n8n orange accent */
+            box-shadow: 0 0 0 2px rgba(255, 109, 90, 0.3);
+        }
+
+        .n8n-node.selected {
+            border-color: #FF6D5A;
+            box-shadow: 0 0 0 2px #FF6D5A;
+        }
+
+        .node-header {
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #333;
+            border-radius: 12px 12px 0 0;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .node-content {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .node-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+        }
+
+        /* Colors for node types */
+        .type-trigger .node-icon {
+            background: linear-gradient(135deg, #FF6D5A, #C2410C);
+            color: white;
+        }
+
+        .type-action .node-icon {
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            color: white;
+        }
+
+        .type-db .node-icon {
+            background: linear-gradient(135deg, #10B981, #047857);
+            color: white;
+        }
+
+        .type-logic .node-icon {
+            background: linear-gradient(135deg, #F59E0B, #B45309);
+            color: white;
+        }
+
+        /* Edges */
+        .react-flow__edge-path {
+            stroke: #666;
+            stroke-width: 2;
+        }
+
+        .react-flow__edge.selected .react-flow__edge-path {
+            stroke: #FF6D5A;
+        }
+
+        /* React Flow Controls Styling */
+        .react-flow__controls {
+            background: #232323 !important;
+            border: 1px solid #444 !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+        }
+
+        .react-flow__controls-button {
+            background: #232323 !important;
+            border-bottom: 1px solid #444 !important;
+            fill: #e5e7eb !important;
+            /* Light Gray Icon */
+            width: 30px !important;
+            height: 30px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .react-flow__controls-button:hover {
+            background: #333 !important;
+            fill: #FF6D5A !important;
+            /* Kodari Orange Accent */
+        }
+
+        .react-flow__controls-button:last-child {
+            border-bottom: none !important;
+        }
+
+        .react-flow__attribution {
+            background: rgba(35, 35, 35, 0.8) !important;
+            color: #888 !important;
+            padding: 2px 5px !important;
+            border-radius: 4px !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root" style="width: 100vw; height: 100vh;"></div>
+
+    <script>
+        // Global Error Handler
+        window.onerror = function (message, source, lineno, colno, error) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '0';
+            errorDiv.style.left = '0';
+            errorDiv.style.width = '100%';
+            errorDiv.style.background = '#ff4d4d';
+            errorDiv.style.color = '#fff';
+            errorDiv.style.padding = '10px';
+            errorDiv.style.zIndex = '9999';
+            errorDiv.innerHTML = `<strong>Error:</strong> ${message} at ${source}:${lineno}:${colno}`;
+            document.body.appendChild(errorDiv);
+        };
+    </script>
+    <script type="text/babel">
+        // Ensure React Flow is loaded
+        if (!window.ReactFlow) {
+            throw new Error("React Flow Library not loaded. Check internet connection.");
+        }
+
+        const { useState, useCallback, useMemo } = React;
+        // Fix: Access ReactFlow correctly.
+        // Note: Depending on the UMD build, it might be window.ReactFlow or window.ReactFlow.ReactFlow
+        const ReactFlowLib = window.ReactFlow;
+        const ReactFlowComponent = ReactFlowLib.ReactFlow || ReactFlowLib.default || ReactFlowLib;
+        const { Background, Controls, MiniMap, BackgroundVariant, addEdge, applyNodeChanges, applyEdgeChanges, Handle, Position } = ReactFlowLib;
+
+        // Kodari Persona Images
+        const KODARI_IMAGES = {
+            salute: "https://raw.githubusercontent.com/wonseokjung/solopreneur-ai-agents/main/agents/kodari/assets/kodari_salute.png",
+            typing: "https://raw.githubusercontent.com/wonseokjung/solopreneur-ai-agents/main/agents/kodari/assets/kodari_typing.png",
+            thinking: "https://raw.githubusercontent.com/wonseokjung/solopreneur-ai-agents/main/agents/kodari/assets/kodari_thinking.png",
+            success: "https://raw.githubusercontent.com/wonseokjung/solopreneur-ai-agents/main/agents/kodari/assets/kodari_success.png",
+            idea: "https://raw.githubusercontent.com/wonseokjung/solopreneur-ai-agents/main/agents/kodari/assets/kodari_idea.png",
+            panic: "https://raw.githubusercontent.com/wonseokjung/solopreneur-ai-agents/main/agents/kodari/assets/kodari_panic.png",
+            coffee: "https://raw.githubusercontent.com/wonseokjung/solopreneur-ai-agents/main/agents/kodari/assets/kodari_coffee.png"
+        };
+
+        const getNodeImage = (type) => {
+            switch (type) {
+                case 'trigger': return KODARI_IMAGES.salute;
+                case 'server': return KODARI_IMAGES.typing; // Server work
+                case 'action': return KODARI_IMAGES.typing;
+                case 'db': return KODARI_IMAGES.thinking; // Searching DB
+                case 'logic': return KODARI_IMAGES.idea; // Parsing logic
+                default: return KODARI_IMAGES.coffee;
+            }
+        };
+
+        // Custom Node Component
+        const CustomNode = ({ data, selected }) => {
+            const getIcon = () => {
+                if (!window.lucide) return null;
+                switch (data.icon) {
+                    case 'mouse': return <i data-lucide="mouse-pointer-2" width="16" height="16"></i>;
+                    case 'server': return <i data-lucide="server" width="16" height="16"></i>;
+                    case 'database': return <i data-lucide="database" width="16" height="16"></i>;
+                    case 'globe': return <i data-lucide="globe" width="16" height="16"></i>;
+                    case 'code': return <i data-lucide="code-2" width="16" height="16"></i>;
+                    case 'search': return <i data-lucide="search" width="16" height="16"></i>;
+                    case 'filter': return <i data-lucide="filter" width="16" height="16"></i>;
+                    default: return <i data-lucide="box" width="16" height="16"></i>;
+                }
+            };
+
+            // React render 이후 아이콘 렌더링을 위해
+            React.useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, []);
+
+            return (
+                <div className={`n8n-node ${selected ? 'selected' : ''} ${'type-' + (data.type || 'action')}`}>
+                    <Handle type="target" position={Position.Left} style={{ background: '#555', width: '8px', height: '8px' }} />
+
+                    <div className="node-header">
+                        <div className="node-icon">
+                            {getIcon()}
+                        </div>
+                        <div className="font-bold text-sm text-gray-200">{data.label}</div>
+                    </div>
+                    {data.desc && (
+                        <div className="node-content">
+                            {data.desc}
+                        </div>
+                    )}
+
+                    <Handle type="source" position={Position.Right} style={{ background: '#555', width: '8px', height: '8px' }} />
+                </div>
+            );
+        };
+
+        const nodeTypes = {
+            custom: CustomNode,
+        };
+
+        // Initial Data
+        const initialNodes = [
+            // Client Side
+            {
+                id: 'client-start',
+                type: 'custom',
+                position: { x: 50, y: 300 },
+                data: { label: 'User Action', desc: 'Inputs keyword & clicks search', icon: 'mouse', type: 'trigger' }
+            },
+            {
+                id: 'client-search',
+                type: 'custom',
+                position: { x: 300, y: 300 },
+                data: { label: 'Search Page', desc: '/search (Client Component)', icon: 'search', type: 'action' }
+            },
+            {
+                id: 'client-filter',
+                type: 'custom',
+                position: { x: 300, y: 150 },
+                data: { label: 'Local Filter', desc: 'Grade, Problem, Scamper', icon: 'filter', type: 'logic' }
+            },
+            // Chatbot Flow
+            {
+                id: 'client-chat',
+                type: 'custom',
+                position: { x: 300, y: 650 },
+                data: { label: 'Chat Window', desc: 'Floating Chat Widget (RAG)', icon: 'mouse', type: 'action' }
+            },
+
+            // Server Side
+            {
+                id: 'server-api',
+                type: 'custom',
+                position: { x: 600, y: 300 },
+                data: { label: 'API Route', desc: '/api/search (POST)', icon: 'server', type: 'action' }
+            },
+            {
+                id: 'server-parser',
+                type: 'custom',
+                position: { x: 600, y: 150 },
+                data: { label: 'Search Parser', desc: 'Parse keyword into tokens', icon: 'code', type: 'logic' }
+            },
+            {
+                id: 'server-chat-api',
+                type: 'custom',
+                position: { x: 600, y: 650 },
+                data: { label: 'Chat Proxy', desc: '/api/chat (POST)', icon: 'server', type: 'action' }
+            },
+
+            // Database & External
+            {
+                id: 'db-supabase',
+                type: 'custom',
+                position: { x: 900, y: 300 },
+                data: { label: 'Supabase DB', desc: 'Query Inventions Table', icon: 'database', type: 'db' }
+            },
+            {
+                id: 'function-edge',
+                type: 'custom',
+                position: { x: 900, y: 650 },
+                data: { label: 'Edge Function', desc: 'Supabase Functions (LLM/RAG)', icon: 'code', type: 'logic' }
+            },
+
+            // Detail Page Flow
+            {
+                id: 'page-detail',
+                type: 'custom',
+                position: { x: 600, y: 500 },
+                data: { label: 'Detail Page', desc: '/inventions/[id] (SSR)', icon: 'globe', type: 'action' }
+            },
+            {
+                id: 'external-kipris',
+                type: 'custom',
+                position: { x: 900, y: 500 },
+                data: { label: 'KIPRIS', desc: 'External Patent Search', icon: 'globe', type: 'db' }
+            },
+        ];
+
+        const initialEdges = [
+            { id: 'e1-2', source: 'client-start', target: 'client-search', animated: true },
+            { id: 'e2-3', source: 'client-search', target: 'client-filter', label: 'Filter', style: { strokeDasharray: '5,5' } },
+            { id: 'e2-4', source: 'client-search', target: 'server-api', label: 'Fetch Data', animated: true },
+            { id: 'e4-5', source: 'server-api', target: 'server-parser', type: 'smoothstep' },
+            { id: 'e5-4', source: 'server-parser', target: 'server-api', type: 'smoothstep' },
+            { id: 'e4-6', source: 'server-api', target: 'db-supabase', label: 'Query', animated: true },
+            { id: 'e6-4', source: 'db-supabase', target: 'server-api', label: 'Return JSON' },
+            { id: 'e2-7', source: 'client-search', target: 'page-detail', label: 'Click Item', type: 'smoothstep' },
+            { id: 'e7-6', source: 'page-detail', target: 'db-supabase', label: 'Get ID' },
+            { id: 'e7-8', source: 'page-detail', target: 'external-kipris', label: 'Link' },
+            // Chatbot Edges
+            { id: 'c1-2', source: 'client-start', target: 'client-chat', label: 'Open Chat', type: 'smoothstep' },
+            { id: 'c2-3', source: 'client-chat', target: 'server-chat-api', label: 'Send Msg', animated: true },
+            { id: 'c3-4', source: 'server-chat-api', target: 'function-edge', label: 'Proxy', animated: true },
+        ];
+
+
+        const App = () => {
+            const [nodes, setNodes, onNodesChange] = ReactFlowLib.useNodesState(initialNodes);
+            const [edges, setEdges, onEdgesChange] = ReactFlowLib.useEdgesState(initialEdges);
+            const [selectedNode, setSelectedNode] = useState(null);
+
+            const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+
+            const onNodeClick = (event, node) => {
+                setSelectedNode(node);
+            };
+
+            const onPaneClick = () => {
+                setSelectedNode(null);
+            };
+
+            return (
+                <div style={{ width: '100vw', height: '100vh', display: 'flex' }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                        <ReactFlowComponent
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={onConnect}
+                            onNodeClick={onNodeClick}
+                            onPaneClick={onPaneClick}
+                            nodeTypes={nodeTypes}
+                            fitView
+                            attributionPosition="bottom-right"
+                        >
+                            <Background color="#333" gap={20} variant={BackgroundVariant.Dots} />
+                            <Controls style={{ backgroundColor: '#232323', border: '1px solid #444', fill: '#fff' }} />
+                            <MiniMap
+                                nodeStrokeColor={(n) => '#555'}
+                                nodeColor={() => '#232323'}
+                                style={{ backgroundColor: '#121212' }}
+                            />
+                        </ReactFlowComponent>
+
+                        <div className="absolute top-4 left-4 z-10 bg-[#232323] border border-[#444] p-4 rounded-xl shadow-lg">
+                            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                                <span className="text-[#FF6D5A]">⚡</span> IdeaPrism Logic
+                            </h1>
+                            <p className="text-xs text-gray-400 mt-1">Interactive n8n-style Workflow</p>
+                        </div>
+                    </div>
+
+                    {/* Kodari Briefing Panel */}
+                    <div style={{
+                        width: '320px',
+                        background: '#1a1a1a',
+                        borderLeft: '1px solid #333',
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '20px',
+                        boxShadow: '-4px 0 15px rgba(0,0,0,0.3)'
+                    }}>
+                        <div className="flex items-center gap-3 border-b border-[#333] pb-4">
+                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#FF6D5A]">
+                                <img src={KODARI_IMAGES.salute} alt="Kodari" className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                                <h2 className="font-bold text-gray-200">Kodari Briefing</h2>
+                                <p className="text-xs text-[#FF6D5A]">AI Development Manager</p>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            {selectedNode ? (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                    <div className="w-full aspect-video rounded-lg overflow-hidden border border-[#444] bg-[#232323] flex items-center justify-center relative">
+                                        <img
+                                            src={getNodeImage(selectedNode.data.type)}
+                                            alt="Status"
+                                            className="w-full h-full object-cover opacity-80"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                                            <span className="text-white font-bold text-lg">{selectedNode.data.label}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-[#232323] p-4 rounded-lg border border-[#333]">
+                                        <h3 className="text-sm font-bold text-gray-400 mb-2 uppercase">System Status</h3>
+                                        <p className="text-gray-300 text-sm leading-relaxed">
+                                            {selectedNode.data.desc}
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-[#232323] p-4 rounded-lg border border-[#333]">
+                                        <h3 className="text-sm font-bold text-gray-400 mb-2 uppercase">Kodari's Note</h3>
+                                        <p className="text-[#FF6D5A] text-sm italic">
+                                            "
+                                            {selectedNode.data.type === 'trigger' && "대표님의 명령이 시작되는 곳입니다! 클릭 한 번으로 모든 게 시작되죠."}
+                                            {selectedNode.data.type === 'action' && "열심히 데이터를 처리하고 있습니다. 삐리삐리... 🤖"}
+                                            {selectedNode.data.type === 'db' && "창고(DB)에서 물건을 뒤지고 있습니다. 먼지가 좀 많네요 콜록."}
+                                            {selectedNode.data.type === 'logic' && "복잡한 계산은 저에게 맡기십시오! 뇌섹남 코다리 가동!"}
+                                            "
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 opacity-50">
+                                    <img src={KODARI_IMAGES.coffee} alt="Coffee" className="w-24 h-24 mx-auto mb-4 opacity-70" />
+                                    <p className="text-gray-400">노드를 클릭하시면<br />상세 브리핑을 시작합니다.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
