@@ -1,14 +1,34 @@
 import { Pool, type PoolClient } from 'pg'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomUUID } from 'node:crypto'
+import { attachDatabasePool } from '@vercel/functions'
 import { accountColumns } from './local-auth-store'
 
 let pool: Pool | undefined
 const transaction = new AsyncLocalStorage<PoolClient>()
 export function accountPool() {
   if (!process.env.DATABASE_URL) throw Error('Missing DATABASE_URL')
-  pool ??= new Pool({ connectionString: process.env.DATABASE_URL, max: 3, idleTimeoutMillis: 5000, connectionTimeoutMillis: 15000, allowExitOnIdle: true })
+  if (!pool) {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 3, idleTimeoutMillis: 5000, connectionTimeoutMillis: 15000, allowExitOnIdle: true })
+    pool.on('error', () => console.warn('[Account DB] Idle connection closed; a new connection will be used.'))
+    if (process.env.VERCEL) attachDatabasePool(pool)
+  }
   return pool
+}
+
+function connectionFailed(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const code = 'code' in error ? String(error.code) : ''
+  if (code) return /^(08|57P0[123])/.test(code) || ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE'].includes(code)
+  return /connection (terminated|closed|timeout)|timeout exceeded when trying to connect/i.test(error.message)
+}
+async function readWithReconnect<T>(read: () => Promise<T>, canRetry: boolean): Promise<T> {
+  try { return await read() }
+  catch (error) {
+    if (!canRetry || !connectionFailed(error)) throw error
+    // Only reads outside transactions are safe to replay. Never replay counters or issuance.
+    return read()
+  }
 }
 export async function postgresTransaction<T>(work: () => Promise<T>) {
   const client = await accountPool().connect()
@@ -69,11 +89,11 @@ export async function postgresAdminQuery(table: string, query: Record<string, st
     if (!Number.isInteger(limit) || limit < 1 || limit > 10000) throw Error('Invalid limit')
     sql = `SELECT * FROM ${target}${where} ORDER BY ${column} ${direction} LIMIT ${parameter(limit)}`
   } else throw Error('Unsupported method')
-  const { rows } = await client.query<Row>(sql, values)
+  const { rows } = await readWithReconnect(() => client.query<Row>(sql, values), method === 'GET' && !transaction.getStore())
   const result = rows.map(hydrate)
   if (table === 'access_codes' && rows.length) {
     const ids = [...new Set(rows.map(row => String(row.organization_id)))]
-    const orgs = (await client.query<Row>('SELECT * FROM ideaprism_high.partner_organizations WHERE id = ANY($1::text[])', [ids])).rows
+    const orgs = (await readWithReconnect(() => client.query<Row>('SELECT * FROM ideaprism_high.partner_organizations WHERE id = ANY($1::text[])', [ids]), !transaction.getStore())).rows
     for (const row of result) row.partner_organizations = orgs.find(org => org.id === row.organization_id) ? hydrate(orgs.find(org => org.id === row.organization_id)!) : null
   }
   return result
