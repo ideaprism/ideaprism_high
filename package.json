@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/service-data-package.mjs && next build",
+    "build": "node scripts/service-data-package.mjs && node scripts/import-account-seed.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test --test-concurrency=2 \"src/**/*.test.ts\"",

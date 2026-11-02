@@ -38,6 +38,7 @@
 - `npm run build`는 서버 비밀키로 패키지를 복호화하고, Next.js의 서버 함수 파일에만 JSON과 사진을 포함합니다. `public/`에 복사하지 않습니다. Vercel에서 키가 없으면 빌드를 중단합니다.
 - Neon 연결 문자열을 Git 제외 파일 `private/deployment.env`의 `DATABASE_URL`에 설정한 뒤 `node node_modules/tsx/dist/cli.mjs scripts/migrate-accounts-to-neon.ts`로 계정을 이관합니다. 전용 `ideaprism_high` 스키마만 사용하고, 코드·학교·활성 상태·세션 버전을 보존합니다. 충돌 또는 기존 값 차이가 있으면 전체 이관을 롤백합니다.
 - `node node_modules/tsx/dist/cli.mjs scripts/verify-postgres-auth.ts`는 실제 Neon에서 발급 트랜잭션·중복 롤백·세션 버전·동시 사용 횟수 갱신을 검증하고 해당 실행에서 만든 임시 레코드만 삭제합니다.
+- Neon이 연결 문자열을 Sensitive로 관리하면 외부로 추출하지 않습니다. `node scripts/account-seed.mjs`로 로컬 계정을 암호화하고, Production의 `ACCOUNT_SEED_IMPORT=1`로 최초 빌드 시 Neon 내부로 이관합니다. 전용 스키마가 비어 있을 때만 적용하며 이후 빌드는 이관 표시를 확인해 변경된 코드를 보존합니다. 이관 후 이 환경변수를 제거할 수 있습니다.
 - 로컬 `.env.local`에 `DATABASE_URL`이 없으면 기존 SQLite를 계속 사용합니다. `private/` 계정 DB와 복호화 키는 커밋하지 않습니다.
 
 ## 데이터·검색
