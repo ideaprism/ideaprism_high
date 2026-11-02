@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdeaPrism Design Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Roboto:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Roboto', 'Noto Sans KR', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#0066FF', // Vivid Blue
+                            hover: '#0052CC',
+                            light: '#E6F0FF',
+                        },
+                        secondary: '#4F5D75',
+                        background: '#F8FAFC',
+                        surface: '#FFFFFF',
+                        border: '#E2E8F0',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F8FAFC;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(0, 102, 255, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(0, 102, 255, 0.03) 0px, transparent 50%);
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-8 text-slate-800 font-sans">
+    <div class="max-w-6xl mx-auto space-y-12">
+
+        <!-- Header -->
+        <header class="text-center space-y-4">
+            <h1 class="text-4xl font-black text-slate-900 tracking-tight">Design System: <span
+                    class="text-primary">Vivid & Compact</span></h1>
+            <p class="text-slate-500 max-w-2xl mx-auto">
+                기존의 칙칙한 기업형 디자인을 탈피하고, 학생 발명가들을 위한 생동감(Vivid)과 정보 밀도가 높은(Compact) 디자인을 제안합니다.
+            </p>
+        </header>
+
+        <!-- Color Palette -->
+        <section class="space-y-4">
+            <h2 class="text-xl font-bold border-l-4 border-primary pl-3">1. Color Palette (Vivid Blue)</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="space-y-2">
+                    <div
+                        class="h-24 rounded-xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-white font-bold">
+                        Primary</div>
+                    <p class="text-xs text-center font-mono">#0066FF</p>
+                </div>
+                <div class="space-y-2">
+                    <div
+                        class="h-24 rounded-xl bg-primary-hover shadow-md flex items-center justify-center text-white font-bold">
+                        Hover</div>
+                    <p class="text-xs text-center font-mono">#0052CC</p>
+                </div>
+                <div class="space-y-2">
+                    <div
+                        class="h-24 rounded-xl bg-primary-light border border-primary/20 flex items-center justify-center text-primary font-bold">
+                        Light</div>
+                    <p class="text-xs text-center font-mono">#E6F0FF</p>
+                </div>
+                <div class="space-y-2">
+                    <div class="h-24 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold">Dark
+                        Text</div>
+                    <p class="text-xs text-center font-mono">#0F172A</p>
+                </div>
+                <div class="space-y-2">
+                    <div
+                        class="h-24 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg flex items-center justify-center text-white font-bold">
+                        Gradient</div>
+                    <p class="text-xs text-center font-mono">Accent</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search Bar Comparison -->
+        <section class="space-y-8">
+            <h2 class="text-xl font-bold border-l-4 border-primary pl-3">2. Search Bar (Slim vs Old Fat)</h2>
+
+            <!-- New Slim Design -->
+            <div class="space-y-2">
+                <p class="text-sm font-semibold text-primary">NEW: Slim & Vivid (48px height)</p>
+                <div class="glass-panel p-8 rounded-2xl bg-white/50">
+                    <div class="max-w-3xl mx-auto relative group">
+                        <!-- Glow effect -->
+                        <div
+                            class="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full opacity-30 group-focus-within:opacity-100 transition duration-500 blur">
+                        </div>
+
+                        <div class="relative flex items-center bg-white rounded-full shadow-sm">
+                            <div class="pl-5 text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input type="text" placeholder="어떤 발명품을 찾고 계신가요?"
+                                class="w-full py-3 px-4 bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium">
+                            <div class="pr-1.5 py-1.5">
+                                <button
+                                    class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-md hover:shadow-lg hover:brightness-110 transition-all transform hover:-translate-y-0.5">
+                                    검색
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Components -->
+        <section class="space-y-4">
+            <h2 class="text-xl font-bold border-l-4 border-primary pl-3">3. Info Density (Card Style)</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+
+                <!-- Example Card -->
+                <div
+                    class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group cursor-pointer">
+                    <div class="aspect-video bg-slate-100 relative overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-center text-slate-300 bg-slate-50">
+                            <span class="text-4xl text-slate-200 font-black">IMG</span>
+                        </div>
+                        <div
+                            class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12">
+                            <div class="flex gap-1">
+                                <span
+                                    class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/90 text-blue-600 backdrop-blur">S(대체)</span>
+                                <span
+                                    class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/90 text-purple-600 backdrop-blur">C(결합)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        <h3
+                            class="font-bold text-lg text-slate-800 leading-tight group-hover:text-primary transition-colors">
+                            시각장애인을 위한 스마트 지팡이 및 길안내 시스템
+                        </h3>
+                        <p class="text-sm text-slate-500 line-clamp-2">
+                            기존 지팡이에 초음파 센서를 부착하여 장애물을 감지하고, 음성으로 경로를 안내하는 스마트 디바이스...
+                        </p>
+
+                        <div
+                            class="pt-2 flex items-center justify-between text-xs text-slate-400 border-t border-slate-100 mt-2">
+                            <span>초등 고학년</span>
+                            <span>안전/생활</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="space-y-4 py-4">
+                    <h3 class="font-bold text-slate-700">Change Points</h3>
+                    <ul class="space-y-2 text-sm text-slate-600 list-disc pl-4">
+                        <li><strong>Primary Color</strong>: #0066FF (더 쨍하고 선명함)</li>
+                        <li><strong>Background</strong>: 흰색 배경에 아주 옅은 파란색 빛(Radial Gradient)을 추가하여 깊이감 부여 (티미함 제거)</li>
+                        <li><strong>Search Bar</strong>: 높이를 줄이고(72px -> 48~52px), 내부 버튼에 그라데이션을 적용하여 주목도 높임</li>
+                        <li><strong>Typography</strong>: Roboto + Noto Sans KR 사용, 제목의 자간(Tracking)을 줄여서 단단한 느낌(Tight)
+                            부여</li>
+                        <li><strong>Radius</strong>: 둥글지만 너무 과하지 않은(xl) 정도로 조정하여 내용에 집중</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Logo Variations -->
+        <section class="space-y-4">
+            <h2 class="text-xl font-bold border-l-4 border-primary pl-3">4. Logo Variations (Rainbow Gradient)</h2>
+            <div class="grid gap-8">
+
+                <!-- Variation 1: Linear Gradient -->
+                <div
+                    class="p-8 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center justify-center space-y-4">
+                    <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Variation 1: Continuous
+                        Linear Gradient</p>
+                    <div
+                        class="text-5xl font-black bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-600 bg-clip-text text-transparent tracking-tight pb-2">
+                        IdeaPrism 아이디어프리즘
+                    </div>
+                    <p class="text-xs text-slate-400">bg-gradient-to-r from-red-500 ... to-purple-600</p>
+                </div>
+
+                <!-- Variation 2: Letter by Letter -->
+                <div
+                    class="p-8 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center justify-center space-y-4">
+                    <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Variation 2: Letter by
+                        Letter (Rainbow)</p>
+                    <div class="text-5xl font-black tracking-tight flex items-center justify-center pb-2 gap-6">
+                        <span class="flex items-center">
+                            <span class="text-red-500">I</span>
+                            <span class="text-orange-500">d</span>
+                            <span class="text-yellow-500">e</span>
+                            <span class="text-green-500">a</span>
+                            <span class="text-teal-500">P</span>
+                            <span class="text-blue-500">r</span>
+                            <span class="text-indigo-500">i</span>
+                            <span class="text-violet-500">s</span>
+                            <span class="text-purple-600">m</span>
+                        </span>
+                        <span class="flex items-center">
+                            <span class="text-red-500">아</span><span class="text-orange-500">이</span><span
+                                class="text-yellow-500">디</span><span class="text-green-500">어</span><span
+                                class="text-blue-500">프</span><span class="text-indigo-500">리</span><span
+                                class="text-purple-600">즘</span>
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400">Individual text colors (Red -> Purple)</p>
+                </div>
+
+                <!-- Variation 3: Block Gradient (1-2 chars) -->
+                <div
+                    class="p-8 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center justify-center space-y-4">
+                    <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Variation 3: Block Gradient
+                        (Grouped)</p>
+                    <div class="text-5xl font-black tracking-tight flex items-center justify-center gap-6 pb-2">
+                        <div
+                            class="bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-600">
+                            <span class="text-red-500">Id</span><span class="text-yellow-500">ea</span><span
+                                class="text-green-500">Pr</span><span class="text-blue-500">is</span><span
+                                class="text-purple-600">m</span>
+                        </div>
+                        <div
+                            class="bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-600">
+                            <span class="text-red-500">아</span><span class="text-yellow-500">이디</span><span
+                                class="text-green-500">어프</span><span class="text-blue-500">리</span><span
+                                class="text-purple-600">즘</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400">(Simulated Block Coloring)</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</body>
+
+</html>

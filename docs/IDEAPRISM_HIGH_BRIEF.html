@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IdeaPrism High — 프로젝트 브리핑</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1a2218;
+      --ink-soft: #3d4a38;
+      --paper: #f3efe6;
+      --paper-2: #ebe4d6;
+      --card: #fffdf8;
+      --line: #cfc4b0;
+      --accent: #0f6b45;
+      --accent-soft: #d7ebe0;
+      --warn: #8a3b12;
+      --warn-soft: #f5e4d6;
+      --danger: #7a1f24;
+      --danger-soft: #f4e0e1;
+      --info: #1e3a4c;
+      --info-soft: #dce8ef;
+      --shadow: 0 18px 40px rgba(26, 34, 24, 0.08);
+      --radius: 14px;
+      --max: 920px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans KR", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, #e4efe6 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #efe6d4 0%, transparent 50%),
+        var(--paper);
+      line-height: 1.65;
+    }
+
+    .grain {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      opacity: 0.04;
+      z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 5rem;
+    }
+
+    header.hero {
+      padding: 2rem 0 2.5rem;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 2.5rem;
+      animation: rise 0.7s ease both;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 1.5rem;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-family: Newsreader, Georgia, serif;
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.15;
+      font-weight: 700;
+      margin: 0 0 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .lede {
+      font-size: 1.1rem;
+      color: var(--ink-soft);
+      max-width: 40rem;
+      margin: 0 0 1.75rem;
+    }
+
+    .cheat {
+      background: var(--ink);
+      color: #f3efe6;
+      border-radius: var(--radius);
+      padding: 1.25rem 1.4rem;
+      box-shadow: var(--shadow);
+    }
+
+    .cheat h2 {
+      font-family: Newsreader, Georgia, serif;
+      font-size: 1.15rem;
+      margin: 0 0 0.75rem;
+      color: #d7ebe0;
+    }
+
+    .cheat p { margin: 0; font-size: 0.98rem; line-height: 1.7; }
+    .cheat strong { color: #fff; font-weight: 600; }
+
+    nav.toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 2rem 0 0;
+    }
+
+    nav.toc a {
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    nav.toc a:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    section {
+      margin: 2.75rem 0;
+      animation: rise 0.6s ease both;
+    }
+
+    h2 {
+      font-family: Newsreader, Georgia, serif;
+      font-size: 1.75rem;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.01em;
+    }
+
+    .section-lead {
+      color: var(--ink-soft);
+      margin: 0 0 1.25rem;
+      font-size: 0.98rem;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      margin: 1.75rem 0 0.6rem;
+      font-weight: 700;
+    }
+
+    p { margin: 0 0 0.9rem; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.2rem;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset;
+    }
+
+    .card h3 { margin-top: 0; }
+
+    .stack-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .stack-list li {
+      display: grid;
+      grid-template-columns: 7.5rem 1fr;
+      gap: 0.75rem;
+      padding: 0.7rem 0;
+      border-bottom: 1px dashed var(--line);
+      font-size: 0.95rem;
+    }
+
+    .stack-list li:last-child { border-bottom: 0; }
+
+    .stack-list .label {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--accent);
+      padding-top: 0.15rem;
+    }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 0.5rem;
+      margin: 1rem 0 1.5rem;
+    }
+
+    .flow-step {
+      flex: 1 1 120px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0.85rem 0.9rem;
+      min-width: 110px;
+    }
+
+    .flow-step .n {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .flow-step .t {
+      display: block;
+      font-weight: 700;
+      margin: 0.25rem 0 0.2rem;
+      font-size: 0.92rem;
+    }
+
+    .flow-step .d {
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      line-height: 1.45;
+    }
+
+    .flow-arrow {
+      align-self: center;
+      color: var(--line);
+      font-size: 1.2rem;
+      flex: 0 0 auto;
+    }
+
+    @media (max-width: 720px) {
+      .flow-arrow { display: none; }
+    }
+
+    .arch {
+      background: var(--ink);
+      color: #e8e2d6;
+      border-radius: var(--radius);
+      padding: 1.4rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 1rem 0 1.5rem;
+    }
+
+    .arch .hl { color: #9fd4b5; }
+    .arch .dim { color: #8a8578; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--paper-2);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+
+    .tag-ok { background: var(--accent-soft); color: var(--accent); }
+    .tag-warn { background: var(--warn-soft); color: var(--warn); }
+    .tag-bad { background: var(--danger-soft); color: var(--danger); }
+    .tag-info { background: var(--info-soft); color: var(--info); }
+
+    .callout {
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      padding: 0.9rem 1rem;
+      border-radius: 0 10px 10px 0;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+    }
+
+    .callout.danger {
+      border-left-color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    ul.clean, ol.clean {
+      margin: 0.4rem 0 1rem;
+      padding-left: 1.15rem;
+    }
+
+    ul.clean li, ol.clean li { margin: 0.35rem 0; }
+
+    .folder {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+      line-height: 1.55;
+      overflow-x: auto;
+    }
+
+    .folder .c { color: var(--ink-soft); }
+    .folder .f { color: var(--accent); }
+
+    dl.glossary { margin: 0; }
+    dl.glossary dt { font-weight: 700; margin-top: 1rem; }
+    dl.glossary dd {
+      margin: 0.25rem 0 0;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+    }
+
+    footer.page-foot {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    @media print {
+      body { background: white; }
+      .grain, nav.toc { display: none; }
+      .cheat, section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">Onboarding Brief</div>
+      <h1>IdeaPrism High<br />프로젝트 한눈에 보기</h1>
+      <p class="lede">
+        비개발자·신입 개발자용 브리핑입니다.
+        “이 서비스 뭘로 만들었어요?” “어떻게 동작해요?” “어디가 약한가요?”에
+        바로 답할 수 있게 정리했습니다.
+      </p>
+
+      <div class="cheat">
+        <h2>30초 답변 치트시트</h2>
+        <p>
+          <strong>IdeaPrism High</strong>는 학생 발명품을 검색하는 웹 서비스입니다.
+          원본 서비스(<strong>ideaprism.or.kr / ideaprism_sdg2</strong>)의 검색·상세·특허 기능을 가져와,
+          <strong>네 고등학교가 각자 코드로 들어가는 전용 화면</strong>으로 만든 MVP입니다.
+          기술적으로는 <strong>Next.js(React) + TypeScript + Supabase + Tailwind</strong>로 만들었고,
+          학교 코드가 맞으면 쿠키로 세션을 열고 그 학교 색·로고로 UI가 바뀝니다.
+          지금은 UI·입장 통제만 학교별이고, <strong>발명 데이터는 아직 학교마다 완전히 분리되지 않은 상태</strong>입니다.
+        </p>
+      </div>
+
+      <nav class="toc" aria-label="목차">
+        <a href="#what">이게 뭐예요</a>
+        <a href="#stack">뭘로 만들었나</a>
+        <a href="#flow">사용자 흐름</a>
+        <a href="#arch">구조</a>
+        <a href="#features">핵심 기능</a>
+        <a href="#traits">개발 특징</a>
+        <a href="#risks">취약점·리스크</a>
+        <a href="#glossary">용어집</a>
+      </nav>
+    </header>
+
+    <section id="what">
+      <h2>1. 이게 뭐예요?</h2>
+      <p class="section-lead">제품 관점 한 줄 + 왜 만들었는지.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>제품 정의</h3>
+          <p>
+            고등학생이 <strong>키워드·SCAMPER·문제 유형</strong>으로 선배 발명품을 찾고,
+            고른 결과로 <strong>특허 검색식(KIPRIS)</strong>까지 이어가는 학습용 검색 서비스입니다.
+          </p>
+        </div>
+        <div class="card">
+          <h3>이 버전(High)의 특별함</h3>
+          <p>
+            전국 공용 사이트가 아니라,
+            <strong>대광고 · 미래산업과학고 · 삼일공고 · 보성고</strong>
+            네 학교가 각자 코드로 들어와 <strong>자기 학교 브랜드 UI</strong>를 보는 형태입니다.
+          </p>
+        </div>
+      </div>
+
+      <h3>대상 학교와 입장 코드</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>학교</th>
+            <th>지역</th>
+            <th>코드 (예시)</th>
+            <th>역할</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>대광고등학교</td>
+            <td>부산</td>
+            <td><code>DAEGWANG</code></td>
+            <td>초록 계열 테마</td>
+          </tr>
+          <tr>
+            <td>미래산업과학고등학교</td>
+            <td>서울</td>
+            <td><code>MIRAE</code></td>
+            <td>네이비 계열 테마</td>
+          </tr>
+          <tr>
+            <td>삼일공업고등학교</td>
+            <td>수원</td>
+            <td><code>SAMIL</code></td>
+            <td>자주·금 계열 테마</td>
+          </tr>
+          <tr>
+            <td>보성고등학교</td>
+            <td>서울</td>
+            <td><code>BOSEONG</code></td>
+            <td>버건디 계열 테마</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="callout">
+        코드 값은 <code>src/config/school-codes.ts</code>에서 바꿉니다.
+        학교 이름·색·로고는 <code>src/config/schools.ts</code>와 <code>public/schools/</code>입니다.
+      </p>
+    </section>
+
+    <section id="stack">
+      <h2>2. 뭘로 만들었나? (기술 스택)</h2>
+      <p class="section-lead">외부 미팅에서 “기술 스택이 뭔가요?”라고 물으면 이 표를 기준으로 말하면 됩니다.</p>
+
+      <ul class="stack-list card">
+        <li>
+          <span class="label">Frontend</span>
+          <span><strong>Next.js 15</strong> (App Router) + <strong>React 19</strong> + <strong>TypeScript</strong>. 화면과 서버 API를 한 프로젝트에서 만듭니다.</span>
+        </li>
+        <li>
+          <span class="label">Styling</span>
+          <span><strong>Tailwind CSS 4</strong>. 학교별로 CSS 변수(--primary 등)를 바꿔 테마를 입힙니다.</span>
+        </li>
+        <li>
+          <span class="label">Data / DB</span>
+          <span><strong>Supabase</strong> (PostgreSQL). 발명품·태그·기관 코드 등이 들어 있는 클라우드 DB.</span>
+        </li>
+        <li>
+          <span class="label">Client state</span>
+          <span><strong>TanStack React Query</strong>. 검색 결과 같은 서버 데이터를 브라우저에서 캐시·재요청.</span>
+        </li>
+        <li>
+          <span class="label">External API</span>
+          <span><strong>KIPRIS</strong> 특허 검색. 선택적으로 OpenAI(채팅 관련 코드가 원본에서 남아 있음).</span>
+        </li>
+        <li>
+          <span class="label">Motion / UI</span>
+          <span>Framer Motion, Lucide 아이콘. 관리자 쪽에는 차트(Recharts), 워크플로(XYFlow) 흔적이 있습니다.</span>
+        </li>
+        <li>
+          <span class="label">Origin</span>
+          <span>코드 베이스는 <strong>ideaprism_sdg2</strong>를 복사한 뒤, 학교 대문·세션·테마를 얹은 파생 프로젝트입니다.</span>
+        </li>
+      </ul>
+
+      <div class="callout">
+        <strong>비개발자용 비유:</strong>
+        Next.js는 “웹사이트 건물”, React는 “방 안 가구를 그리는 방식”,
+        Supabase는 “발명품이 들어 있는 창고(DB)”,
+        Tailwind는 “페인트·인테리어 도구”,
+        학교 코드는 “교문 비밀번호”입니다.
+      </div>
+    </section>
+
+    <section id="flow">
+      <h2>3. 사용자가 보는 흐름</h2>
+      <p class="section-lead">학생이 서비스를 쓰는 순서를 단계로 나눈 것입니다.</p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <span class="n">01</span>
+          <span class="t">대문</span>
+          <span class="d">학교 이름 목록 없이 코드만 입력</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="n">02</span>
+          <span class="t">인증</span>
+          <span class="d">서버가 코드 확인 후 쿠키 발급</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="n">03</span>
+          <span class="t">학교 홈</span>
+          <span class="d">로고·교훈·색으로 꾸며진 홈</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="n">04</span>
+          <span class="t">검색·상세</span>
+          <span class="d">발명 검색, 필터, 카드/상세</span>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <span class="n">05</span>
+          <span class="t">특허식</span>
+          <span class="d">고른 발명으로 KIPRIS 검색식</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>입장(학교 세션)</h3>
+          <ul class="clean">
+            <li>대문 컴포넌트: <code>SchoolGate</code></li>
+            <li>API: <code>POST /api/auth/school</code></li>
+            <li>쿠키: httpOnly 세션 토큰 (약 12시간)</li>
+            <li>나가기: 로그아웃 API가 학교·관리자 쿠키 삭제</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>막히는 길(보호)</h3>
+          <ul class="clean">
+            <li>middleware가 검색·발명·일부 API를 가드</li>
+            <li>세션 없으면 대문으로 돌려보냄</li>
+            <li>관리자(<code>/admin</code>)는 별도 관리자 세션</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="arch">
+      <h2>4. 구조 — 어떻게 짜여 있나</h2>
+      <p class="section-lead">신입에게 “폴더 지도”와 “레이어”를 같이 보여주면 이해가 빠릅니다.</p>
+
+      <h3>레이어 한 장 요약</h3>
+      <div class="arch"><span class="dim">브라우저</span>
+  UI (React 컴포넌트)  ← 학교 테마 CSS 변수
+       │
+       ▼
+<span class="hl">Next.js</span>  페이지(app/) + API Route + middleware
+       │
+       ├─ 학교 세션 쿠키 검증
+       ├─ 검색/특허 API
+       └─ Supabase 클라이언트
+              │
+              ▼
+         <span class="hl">Supabase DB</span>  inventions, tags, partner…</div>
+
+      <h3>주요 폴더</h3>
+      <div class="folder">
+<span class="f">src/app/</span>                 <span class="c">← 페이지·API (URL과 1:1에 가깝게)</span>
+  page.tsx               <span class="c">홈 / 또는 SchoolGate</span>
+  search/                <span class="c">검색 화면</span>
+  inventions/[id]/       <span class="c">발명 상세</span>
+  api/auth/school/       <span class="c">학교 코드 입장</span>
+  api/search/            <span class="c">발명 검색 API</span>
+  api/kipris/            <span class="c">특허 검색</span>
+  admin/                 <span class="c">관리자(원본에서 상속)</span>
+
+<span class="f">src/components/</span>
+  auth/SchoolGate.tsx    <span class="c">대문</span>
+  school/                <span class="c">SchoolProvider, SchoolCrest</span>
+  features/              <span class="c">검색·카드·상세·특허 UI</span>
+  layout/                <span class="c">Header, Footer</span>
+
+<span class="f">src/config/</span>
+  schools.ts             <span class="c">학교 프로필(이름·색·로고)</span>
+  school-codes.ts        <span class="c">입장 코드 (서버 전용 용도)</span>
+
+<span class="f">src/lib/</span>
+  school-token.ts        <span class="c">세션 토큰 서명/검증</span>
+  school-session.ts      <span class="c">쿠키에서 학교 읽기</span>
+
+<span class="f">src/middleware.ts</span>        <span class="c">진입 전 가드(문지기)</span>
+<span class="f">public/schools/</span>         <span class="c">학교 로고 이미지</span>
+<span class="f">supabase/</span>               <span class="c">마이그레이션·엣지 함수 흔적</span>
+      </div>
+
+      <h3>학교 UI가 바뀌는 원리</h3>
+      <ol class="clean">
+        <li>서버가 쿠키에서 학교 slug를 읽음 (<code>getSchoolSession</code>)</li>
+        <li><code>layout.tsx</code>가 그 학교 색을 HTML에 CSS 변수로 심음</li>
+        <li>Header/홈/Footer가 <code>useSchool()</code>로 이름·로고를 표시</li>
+      </ol>
+      <p>
+        즉, <strong>페이지를 네 벌 만든 것이 아니라</strong>,
+        한 벌의 앱에 “옷(테마)”만 갈아입히는 구조입니다.
+      </p>
+    </section>
+
+    <section id="features">
+      <h2>5. 핵심 기능 스펙</h2>
+      <p class="section-lead">MVP에서 “해야 하는 일”과 “원본에서 따라온 것”을 구분합니다.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>기능</th>
+            <th>상태</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>학교 코드 대문</td>
+            <td><span class="tag tag-ok">핵심</span></td>
+            <td>코드 → 학교 판별 → httpOnly 쿠키 세션</td>
+          </tr>
+          <tr>
+            <td>학교별 테마 UI</td>
+            <td><span class="tag tag-ok">핵심</span></td>
+            <td>색·교훈·설립연도·로고 반영</td>
+          </tr>
+          <tr>
+            <td>발명 키워드 검색</td>
+            <td><span class="tag tag-ok">핵심</span></td>
+            <td>제목·요약 등 inventions 조회 (원본과 동일 계열)</td>
+          </tr>
+          <tr>
+            <td>문제유형 / SCAMPER 필터</td>
+            <td><span class="tag tag-ok">핵심</span></td>
+            <td>발상 기법·문제 태그로 결과 좁히기</td>
+          </tr>
+          <tr>
+            <td>발명 상세</td>
+            <td><span class="tag tag-ok">핵심</span></td>
+            <td>문제·해결·도면·태그 등</td>
+          </tr>
+          <tr>
+            <td>특허 검색식 / KIPRIS</td>
+            <td><span class="tag tag-ok">핵심</span></td>
+            <td>선택 발명 기반 특허 탐색</td>
+          </tr>
+          <tr>
+            <td>관리자 / 파트너 모집</td>
+            <td><span class="tag tag-info">원본 잔존</span></td>
+            <td>sdg2에서 같이 복사된 영역. High MVP의 주인공은 아님</td>
+          </tr>
+          <tr>
+            <td>학교별 DB 완전 분리</td>
+            <td><span class="tag tag-warn">미완</span></td>
+            <td>현재는 “입장·UI만 학교별”. 데이터 격리는 후속 과제</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="traits">
+      <h2>6. 개발 관점 특징</h2>
+      <p class="section-lead">이 프로젝트가 “어떻게 설계되어 있는지” 성격 정리.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>잘 된 / 의도된 점</h3>
+          <ul class="clean">
+            <li><strong>파생 MVP 전략</strong> — 검증된 검색 제품을 복사해 학교 게이트만 얹음. 속도가 빠름.</li>
+            <li><strong>테마 = 설정 파일</strong> — 학교 추가 시 프로필·코드·로고만 늘리면 됨.</li>
+            <li><strong>서버 세션</strong> — httpOnly 쿠키 + HMAC 서명 토큰.</li>
+            <li><strong>middleware 가드</strong> — 화면 URL과 API를 같이 막음.</li>
+            <li><strong>App Router</strong> — 레이아웃에서 학교 세션을 읽어 CSS 변수까지 서버에서 주입.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>신입이 기억할 패턴</h3>
+          <ul class="clean">
+            <li><strong>Config-driven UI</strong> — 하드코딩 대신 <code>schools.ts</code></li>
+            <li><strong>Gate → Session → Theme</strong> — 입장 → 기억 → 옷 입히기</li>
+            <li><strong>BFF 느낌의 API Route</strong> — 브라우저가 DB에 직접 안 가고 Next API를 경유</li>
+            <li><strong>원본 스키마 존중</strong> — PRD상 Supabase 구조를 크게 안 건드림</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="risks">
+      <h2>7. 취약점 · 리스크 · 기술 부채</h2>
+      <p class="section-lead">“지금 약한 곳”을 솔직히 적어 둔 섹션입니다.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>심각도</th>
+            <th>왜 문제인가</th>
+            <th>개선 방향(힌트)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>학교 코드가 코드베이스에 존재</td>
+            <td><span class="tag tag-warn">중</span></td>
+            <td>
+              <code>school-codes.ts</code>는 서버 import 용도지만,
+              저장소·빌드 산출물에 노출될 여지가 있음.
+              코드도 짧고 추측 가능(<code>MIRAE</code> 등).
+            </td>
+            <td>환경변수/DB의 access_codes로 이전, 강한 랜덤 코드, rate limit</td>
+          </tr>
+          <tr>
+            <td>데이터 미분리</td>
+            <td><span class="tag tag-bad">고</span></td>
+            <td>
+              학교 세션이 있어도 검색은 공통 inventions를 볼 수 있음.
+              “그 학교 데이터만”이라는 제품 약속과 어긋날 수 있음.
+            </td>
+            <td>학교별 DB/스키마 또는 invention에 school 키 + RLS</td>
+          </tr>
+          <tr>
+            <td>원본 기능 잔존</td>
+            <td><span class="tag tag-warn">중</span></td>
+            <td>
+              admin, test 페이지, 파트너십, 채팅 등 MVP 범위 밖 코드가 남아
+              공격면·유지비·혼란이 커짐.
+            </td>
+            <td>High용으로 라우트 정리·비활성·권한 재점검</td>
+          </tr>
+          <tr>
+            <td>브루트포스에 약할 수 있음</td>
+            <td><span class="tag tag-warn">중</span></td>
+            <td>대문 코드 입력을 막는 횟수 제한·캡차가 약하면 짧은 코드를 반복 시도 가능.</td>
+            <td>IP/세션 rate limit, 실패 잠금, 긴 코드</td>
+          </tr>
+          <tr>
+            <td>테스트 커버리지 얇음</td>
+            <td><span class="tag tag-info">낮~중</span></td>
+            <td>학교 코드 정규화 등 일부 단위 테스트만 존재. 회귀에 취약.</td>
+            <td>인증·middleware·검색 가드 e2e 추가</td>
+          </tr>
+          <tr>
+            <td>시크릿·키 관리</td>
+            <td><span class="tag tag-warn">중</span></td>
+            <td>
+              Supabase anon key, ADMIN/SCHOOL_SESSION_SECRET, KIPRIS 키 등이
+              .env에 의존. 유출·원본 DB 공유 혼동 주의.
+            </td>
+            <td>환경 분리(staging/prod), 키 로테이션, 최소 권한</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout danger">
+        <strong>가장 중요한 한 줄:</strong>
+        지금 High는 “학교별 교문과 교복(UI)”은 갖췄지만,
+        “학교별 창고(데이터)”는 아직 완전히 나뉘지 않았을 수 있습니다.
+        데모·파일럿 전에 이 약속을 제품/보안 기준으로 다시 확인해야 합니다.
+      </div>
+    </section>
+
+    <section id="glossary">
+      <h2>8. 신입용 용어집</h2>
+      <p class="section-lead">회의에서 자주 나오는 말만 짧게.</p>
+
+      <dl class="glossary card">
+        <dt>MVP</dt>
+        <dd>최소 기능 제품. 일단 써볼 수 있게 핵심만 만든 버전.</dd>
+
+        <dt>App Router</dt>
+        <dd>Next.js에서 <code>src/app</code> 폴더 구조로 페이지·레이아웃을 구성하는 방식.</dd>
+
+        <dt>middleware</dt>
+        <dd>요청이 페이지/API에 들어가기 전에 가로채서 “통과/차단/리다이렉트”하는 문지기.</dd>
+
+        <dt>httpOnly 쿠키</dt>
+        <dd>브라우저 JavaScript가 읽지 못하게 한 쿠키. XSS로 세션 훔치기 난이도를 올림.</dd>
+
+        <dt>HMAC 서명 토큰</dt>
+        <dd>서버 비밀키로 내용에 도장을 찍은 티켓. 위조하면 검증에 실패.</dd>
+
+        <dt>Supabase</dt>
+        <dd>PostgreSQL DB + API를 쉽게 쓰는 백엔드 서비스.</dd>
+
+        <dt>SCAMPER</dt>
+        <dd>아이디어 발상 기법(대체·결합·응용 등). 이 서비스의 필터 축 중 하나.</dd>
+
+        <dt>KIPRIS</dt>
+        <dd>한국 특허정보 검색 서비스. 발명 → 특허 검색식으로 연결.</dd>
+
+        <dt>RLS</dt>
+        <dd>Row Level Security. DB가 “이 사용자는 이 행만” 보게 강제하는 장치.</dd>
+
+        <dt>기술 부채</dt>
+        <dd>나중에 갚아야 할 설계/코드 숙제. 지금은 빨리 가려고 남겨 둔 것.</dd>
+      </dl>
+    </section>
+
+    <section id="faq">
+      <h2>9. 자주 받는 질문 → 답변 예시</h2>
+
+      <div class="card" style="margin-bottom:1rem">
+        <h3>Q. 이거 모바일 앱이에요?</h3>
+        <p>아니요. <strong>반응형 웹</strong>입니다. 폰 브라우저에서도 열리게 만든 웹 서비스예요.</p>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <h3>Q. 백엔드 서버를 따로 두었나요?</h3>
+        <p>
+          전통적 Spring 서버를 따로 두기보다,
+          <strong>Next.js API Route + Supabase</strong> 조합입니다.
+          화면과 API가 같은 저장소에 있습니다.
+        </p>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <h3>Q. 학교마다 사이트를 네 개 만들었나요?</h3>
+        <p>
+          아니요. <strong>사이트는 하나</strong>이고,
+          코드에 따라 <strong>테마와 세션만 갈라집니다</strong>.
+        </p>
+      </div>
+      <div class="card" style="margin-bottom:1rem">
+        <h3>Q. 원본 IdeaPrism이랑 뭐가 달라요?</h3>
+        <p>
+          검색·상세·특허의 뼈대는 같고,
+          High는 <strong>고등학교 4곳 전용 대문 + 학교 브랜딩</strong>에 초점을 맞춘 버전입니다.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Q. 지금 바로 학교 현장에 넣어도 되나요?</h3>
+        <p>
+          파일럿은 가능하지만,
+          <strong>데이터 격리·코드 강도·불필요 라우트 정리·키 관리</strong>를
+          점검한 뒤 본배포하는 편이 안전합니다. (위 취약점 섹션 참고)
+        </p>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      <p>
+        문서 위치: <code>docs/IDEAPRISM_HIGH_BRIEF.html</code> ·
+        프로젝트: IdeaPrism High ·
+        기준 시점: 로컬 저장소 분석 (원본 sdg2 파생 MVP)
+      </p>
+      <p>
+        브라우저에서 이 파일을 더블클릭하거나, Cursor에서 Open Preview로 보면 됩니다.
+        인쇄(Ctrl+P)해도 읽기 좋게 잡혀 있습니다.
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
