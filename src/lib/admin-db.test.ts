@@ -1,20 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { adminDb, codeIsActive, codeIsUsable, type AdminCode } from './admin-db'
-
-test('modern secret keys use apikey, legacy JWT keys additionally use Bearer', async t => {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
-  let headers = new Headers()
-  t.mock.method(globalThis, 'fetch', async (_url: string | URL | Request, init?: RequestInit) => {
-    headers = new Headers(init?.headers); return Response.json([])
-  })
-  process.env.SUPABASE_SECRET_KEY = 'sb_secret_test_only'
-  await adminDb('access_codes')
-  assert.equal(headers.get('apikey'), 'sb_secret_test_only')
-  assert.equal(headers.get('authorization'), null)
-  process.env.SUPABASE_SECRET_KEY = 'legacy-test-key'
-  await adminDb('access_codes')
-  assert.equal(headers.get('authorization'), 'Bearer legacy-test-key')
+import { adminDb, adminCount, codeIsActive, codeIsUsable, type AdminCode } from './admin-db'
+import { seedAccount, testStore } from './test-accounts'
+testStore()
+test('accounts persist without network and enforce unique credentials', async t => {
+  t.mock.method(globalThis, 'fetch', async () => { throw Error('Unexpected network') })
+  const code = seedAccount('LOCAL-ACCOUNT-TEST', 'mirae')
+  const [saved] = await adminDb<AdminCode[]>('access_codes', { id: `eq.${code.id}` })
+  assert.equal(saved.partner_organizations?.school_id, 'mirae')
+  assert.equal(await adminCount('access_codes'), 1)
+  await assert.rejects(adminDb('access_codes', {}, { method: 'POST', body: JSON.stringify({ code: code.code, organization_id: code.organization_id }) }), { code: '23505' })
 })
 test('a final permitted login stays valid while additional logins are refused', () => {
   const code = { is_active:true, expires_at:null, max_usage:1, usage_count:1,

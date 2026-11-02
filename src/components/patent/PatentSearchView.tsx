@@ -1,24 +1,21 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Search, Copy, Check, Loader2, ChevronDown, ChevronUp, ImageIcon, ExternalLink } from 'lucide-react'
+import { Search, Copy, Check, Loader2, ChevronDown, ImageIcon } from 'lucide-react'
 import { InventionV2 } from '../features/InventionCardV2'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
-import { fetchIpcDescription } from '@/utils/kipris-search'
+
 import {
-    parseKiprisKeywords,
-    keywordsToTemplateFields,
     OPSME_CATEGORIES,
     OPSMETemplateFields,
     templateFieldsToFormula,
     type OPSMECategory,
 } from '@/utils/opsme-keywords'
-import { createClient } from '@/utils/supabase/client'
+
 import type { KiprisSearchResponse, KiprisPatent } from '@/types/kipris'
 
-// OPSME 키워드 모드
-type KeywordMode = 'simple' | 'expert';
+
 
 // 날짜 포맷팅 함수
 function formatDate(dateStr: string): string {
@@ -228,23 +225,17 @@ export function InventionThumbnail({
 // ============ 특허 검색 뷰 컴포넌트 (OPSME 구조) ============
 export function PatentSearchView({ invention }: { invention: InventionV2 }) {
     const [formulaLoading, setFormulaLoading] = useState(true)
+    const [termsLoaded, setTermsLoaded] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [ipcDescription, setIpcDescription] = useState<string | null>(null)
     const [copied, setCopied] = useState(false)
-
-    // OPSME 키워드 모드 (Simple/Expert)
-    const [keywordMode, setKeywordMode] = useState<KeywordMode>('simple')
-    const [opsmeKeywordsData, setOpsmeKeywordsData] = useState<{
-        simple: OPSMETemplateFields
-        expert: OPSMETemplateFields
-    } | null>(null)
 
     // OPSME 카테고리 활성화 상태 (O, S만 기본 활성화)
     const [activeCategories, setActiveCategories] = useState<Record<string, boolean>>({
         O: true,
         P: false,
-        S: true,
-        M: false,
+        S: false,
+        M: true,
         E: false,
     })
 
@@ -282,76 +273,33 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
     }, [templateFields, activeCategories])
 
     useEffect(() => {
-        if (generatedFormula) {
+        if (termsLoaded) {
             setSearchQuery(generatedFormula)
         }
-    }, [generatedFormula])
+    }, [generatedFormula, termsLoaded])
 
-    // Supabase에서 OPSME 키워드 로딩
+    // Package terms are loaded through the same school-authorized detail endpoint.
     useEffect(() => {
-        async function loadOPSMEKeywords() {
-            setFormulaLoading(true)
-            try {
-                const supabase = createClient()
-                const { data, error } = await supabase
-                    .from('kipris_search_keywords')
-                    .select('kipris_search_keywords')
-                    .eq('invention_id', invention.id)
-                    .single()
-
-                if (error || !data) {
-                    // 데이터가 없으면 기본값 사용
-                    console.log('OPSME 키워드 없음, 기본값 사용')
-                    setTemplateFields({
-                        ipc: invention.ipc || '',
-                        object: '',
-                        problem: '',
-                        solution: '',
-                        method: '',
-                        effect: '',
-                    })
-                } else {
-                    // 키워드 파싱
-                    const parsed = parseKiprisKeywords(data.kipris_search_keywords)
-
-                    const simpleFields = keywordsToTemplateFields(invention.ipc ?? null, parsed.simple)
-                    const expertFields = keywordsToTemplateFields(invention.ipc ?? null, parsed.expert)
-
-                    setOpsmeKeywordsData({ simple: simpleFields, expert: expertFields })
-
-                    // 기본 모드(simple)로 템플릿 필드 설정
-                    setTemplateFields(simpleFields)
-                }
-
-                // IPC 설명 로딩
-                if (invention.ipc) {
-                    const desc = await fetchIpcDescription(invention.ipc)
-                    setIpcDescription(desc)
-                }
-            } catch (error) {
-                console.error('OPSME 키워드 로딩 실패:', error)
-            } finally {
-                setFormulaLoading(false)
-            }
-        }
-        loadOPSMEKeywords()
-    }, [invention])
-
-    // 모드 변경 시 템플릿 필드 업데이트
-    const handleModeChange = (mode: KeywordMode) => {
-        setKeywordMode(mode)
-        if (opsmeKeywordsData) {
-            setTemplateFields(mode === 'simple' ? opsmeKeywordsData.simple : opsmeKeywordsData.expert)
-        }
-    }
-
-    // 자동 검색
-    useEffect(() => {
-        if (!formulaLoading && searchQuery && !hasSearched) {
-            executeSearch(1)
-            setHasSearched(true)
-        }
-    }, [formulaLoading, searchQuery, hasSearched])
+        const controller = new AbortController()
+        setFormulaLoading(true)
+        setTermsLoaded(false)
+        setSearchQuery('')
+        setHasSearched(false)
+        fetch('/api/inventions/' + encodeURIComponent(invention.id), { signal: controller.signal })
+            .then(response => { if (!response.ok) throw Error('발명 검색어를 불러올 수 없습니다.'); return response.json() })
+            .then((data: InventionV2) => {
+                const fields = { ipc: data.ipc || '', object: data.keyword || '', problem: data.search_terms?.problem.join(', ') || '',
+                    solution: '', method: data.search_terms?.method.join(', ') || '', effect: data.search_terms?.effect.join(', ') || '' }
+                setTemplateFields(fields)
+                setSearchQuery(templateFieldsToFormula(fields, ['O', 'M']))
+                setTermsLoaded(true)
+                setIpcDescription(data.ipc_secondary?.length ? '보조 IPC: ' + data.ipc_secondary.join(', ') : null)
+                setSearchError(null)
+            })
+            .catch(error => { if (error.name !== 'AbortError') { setSearchError(error.message); setSearchQuery('') } })
+            .finally(() => { if (!controller.signal.aborted) setFormulaLoading(false) })
+        return () => controller.abort()
+    }, [invention.id])
 
     // KIPRIS API 검색 실행
     const executeSearch = useCallback(async (page: number) => {
@@ -365,6 +313,7 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
             // 실제 KIPRIS 질의를 만든다. 실제로 쓴 질의는 appliedQuery로 돌려받아 화면에 표시.
             const params = new URLSearchParams()
             params.set('q', searchQuery.trim())
+            params.set('inventionId', invention.id)
             params.set('pageNo', page.toString())
             params.set('numOfRows', numOfRows.toString())
 
@@ -403,7 +352,15 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
         } finally {
             setSearchLoading(false)
         }
-    }, [searchQuery, numOfRows])
+    }, [searchQuery, numOfRows, invention.id])
+
+    // 자동 검색
+    useEffect(() => {
+        if (termsLoaded && !formulaLoading && searchQuery && !hasSearched) {
+            executeSearch(1)
+            setHasSearched(true)
+        }
+    }, [termsLoaded, formulaLoading, searchQuery, hasSearched, executeSearch])
 
     const handleCopy = async () => {
         if (searchQuery) {
@@ -526,35 +483,6 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Simple/Expert 토글 */}
-                                    {opsmeKeywordsData && (
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            <span className={cn(
-                                                "text-sm font-medium transition-colors",
-                                                keywordMode === 'simple' ? "text-primary font-bold" : "text-on-surface-variant/60"
-                                            )}>Simple</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleModeChange(keywordMode === 'simple' ? 'expert' : 'simple')}
-                                                className={cn(
-                                                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-                                                    keywordMode === 'expert' ? 'bg-primary' : 'bg-gray-300'
-                                                )}
-                                            >
-                                                <span
-                                                    className={cn(
-                                                        "inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform",
-                                                        keywordMode === 'expert' ? "translate-x-6" : "translate-x-1"
-                                                    )}
-                                                />
-                                            </button>
-                                            <span className={cn(
-                                                "text-sm font-medium transition-colors",
-                                                keywordMode === 'expert' ? "text-primary font-bold" : "text-on-surface-variant/60"
-                                            )}>Expert</span>
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* IPC 코드 - 세로바와 함께 설명 표시 */}

@@ -1,0 +1,42 @@
+{
+  "schools": [
+    {
+      "school": "mirae",
+      "login": 200,
+      "visibleCount": 167,
+      "studentAndPhoto": true,
+      "otherSchoolDetail": 404,
+      "otherSchoolImage": 404
+    },
+    {
+      "school": "boseong",
+      "login": 200,
+      "visibleCount": 82,
+      "studentAndPhoto": true,
+      "otherSchoolDetail": 404,
+      "otherSchoolImage": 404
+    },
+    {
+      "school": "samil",
+      "login": 200,
+      "visibleCount": 70,
+      "studentAndPhoto": true,
+      "otherSchoolDetail": 404,
+      "otherSchoolImage": 404
+    },
+    {
+      "school": "daegwang",
+      "login": 200,
+      "visibleCount": 5,
+      "studentAndPhoto": true,
+      "otherSchoolDetail": 404,
+      "otherSchoolImage": 404
+    }
+  ],
+  "workflow": [
+    "saving a disabled code preserves its disabled state and displays the reason",
+    "save and activate enables the new code; the old code is rejected",
+    "editing an active code revokes the previous session and the new code logs in"
+  ],
+  "consoleErrors": []
+}

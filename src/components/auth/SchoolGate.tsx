@@ -24,7 +24,7 @@ export function SchoolGate() {
       const data = (await response.json()) as { ok?: boolean; message?: string }
 
       if (!response.ok || !data.ok) {
-        setMessage(data.message || '학교 코드가 맞지 않습니다.')
+        setMessage(data.message || '계정 코드가 맞지 않습니다.')
         setIsSubmitting(false)
         return
       }
@@ -44,7 +44,7 @@ export function SchoolGate() {
         <div className="relative">
           <p className="font-school text-6xl leading-none tracking-tight">교문</p>
           <p className="mt-6 max-w-sm text-sm leading-7 text-[#d9d0c3]" style={{ wordBreak: 'keep-all' }}>
-            학교 코드 하나가 교표, 교훈, 색이 다른 발명 검색 화면을 엽니다.
+            발급받은 계정으로 소속 학교의 발명 자료를 찾아보세요.
           </p>
         </div>
         <div className="relative flex gap-3">
@@ -57,22 +57,23 @@ export function SchoolGate() {
 
       <section className="flex items-center justify-center px-6 py-16">
         <form onSubmit={handleSubmit} className="w-full max-w-md">
-          <p className="text-xs font-semibold tracking-[0.34em] text-[#8a5a32]">SCHOOL CODE</p>
+          <p className="text-xs font-semibold tracking-[0.34em] text-[#8a5a32]">ACCOUNT CODE</p>
           <h1 className="font-school mt-4 text-4xl leading-tight text-[#1c1915] md:text-5xl">
-            학교 코드를
+            계정 코드를
             <br />
             입력하세요
           </h1>
           <p className="mt-5 text-sm leading-7 text-[#5c5348]">
-            코드가 맞으면 그 학교 이름과 색으로 꾸며진 발명 검색이 열립니다.
+            관리자가 발급한 계정 코드를 입력하면 소속 학교 자료만 열립니다.
           </p>
 
           <label htmlFor="school-code" className="mt-10 block text-xs font-bold tracking-[0.16em] text-[#5c5348]">
-            학교 코드
+            계정 코드
           </label>
           <input
             id="school-code"
             name="code"
+            type="password"
             maxLength={128}
             value={code}
             onChange={(event) => setCode(event.target.value)}

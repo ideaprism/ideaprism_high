@@ -15,7 +15,7 @@ export default function InquiriesPage() {
       .finally(() => { if(!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [])
-  return <div className="space-y-6"><h1 className="text-3xl font-bold">기존 제휴 문의</h1><p className="text-slate-500">공용 서비스에 접수된 최근 100건입니다. High는 새 제휴 문의를 받지 않습니다.</p>
+  return <div className="space-y-6"><h1 className="text-3xl font-bold">기존 제휴 문의</h1><p className="text-slate-500">High 저장소의 최근 문의 100건입니다. 이전 서비스의 문의는 자동 이전되지 않았으며, 새 문의 접수는 비활성 상태입니다.</p>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     {loading ? <p>불러오는 중입니다.</p> : !error && !items.length ? <p>접수된 문의가 없습니다.</p> : items.map(item =>
       <article key={item.id} className="rounded-2xl border bg-white p-6 space-y-3"><h2 className="text-xl font-bold">{item.org_name}</h2>

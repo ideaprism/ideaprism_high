@@ -2,10 +2,9 @@
 
 import { useState, KeyboardEvent, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ChevronDown, Check, X, Sparkles, Lock } from 'lucide-react'
+import { Search, ChevronDown, Check, X, Lock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PROBLEM_TYPES, POPULAR_KEYWORDS } from '@/constants/home'
-import { cn } from '@/lib/utils'
+import { PROBLEM_TYPES } from '@/constants/home'
 import { SEARCH_HASH, spotlightSearchBar } from '@/lib/search-focus'
 
 interface HomeSearchSectionProps {
@@ -48,9 +47,6 @@ export function HomeSearchSection({ isGuestMode, onOpenGuide }: HomeSearchSectio
     if (e.key === 'Enter') handleSearch()
   }
 
-  const handlePopularKeywordClick = (keyword: string) => {
-    router.push(`/search?q=${encodeURIComponent(keyword)}`)
-  }
 
   const handleProblemTypeClick = (value: string) => {
     setSelectedProblemType(prev => prev === value ? '' : value)
@@ -166,43 +162,6 @@ export function HomeSearchSection({ isGuestMode, onOpenGuide }: HomeSearchSectio
         </div>
       </div>
 
-      <div className="mt-8 relative z-20">
-        <AnimatePresence>
-          {isGuestMode && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap"
-            >
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary text-[13px] font-black rounded-full border border-primary/20 shadow-sm animate-bounce-slow">
-                <Sparkles className="w-3.5 h-3.5 fill-primary" />
-                체험 모드에서는 인기 검색어로 기능을 둘러보실 수 있습니다
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className={cn(
-          "flex flex-wrap items-center justify-center gap-3 p-6 transition-all duration-500",
-          isGuestMode ? "bg-white border-2 border-primary/30 rounded-[28px] shadow-[0_10px_40px_rgba(var(--primary-rgb),0.1)] ring-4 ring-primary/5" : ""
-        )}>
-          <span className="text-on-surface-variant/70 text-sm font-medium mr-1">인기 검색어:</span>
-          {POPULAR_KEYWORDS.map((keyword) => (
-            <button
-              key={keyword}
-              onClick={() => handlePopularKeywordClick(keyword)}
-              className={cn(
-                "px-5 py-2 transition-all hover:scale-105 active:scale-95 duration-200",
-                isGuestMode 
-                  ? "bg-primary text-white font-bold rounded-2xl shadow-md hover:shadow-primary/30" 
-                  : "bg-surface-container-low/50 hover:bg-primary/10 border border-outline-variant/30 rounded-full text-sm text-on-surface-variant hover:text-primary hover:border-primary/30"
-              )}
-            >
-              {keyword}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

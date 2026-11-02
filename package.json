@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/service-data-package.mjs && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "tsx --test --test-concurrency=2 \"src/**/*.test.ts\"",
+    "admin:bootstrap": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -22,6 +23,7 @@
     "next": "15.5.28",
     "openai": "^6.33.0",
     "papaparse": "^5.5.3",
+    "pg": "^8.23.1",
     "react": "19.2.9",
     "react-dom": "19.2.9",
     "recharts": "^3.8.1",
@@ -30,7 +32,8 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "22.16.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -47,5 +50,8 @@
     "esbuild@0.27.2": true,
     "sharp@0.35.5": true,
     "unrs-resolver@1.11.1": true
+  },
+  "engines": {
+    "node": ">=22.16.0"
   }
 }

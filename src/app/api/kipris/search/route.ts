@@ -1,4 +1,6 @@
 import { requireSchool } from '@/lib/school-route';
+import { getRequestSchool } from '@/lib/school-route';
+import { getSchoolInvention } from '@/lib/service-data';
 import { NextRequest, NextResponse } from 'next/server';
 import type { KiprisSearchResponse, KiprisPatent, KiprisRawItem } from '@/types/kipris';
 import { parseFormula, toOperatorQuery, toOperatorCandidates, toRepresentativeQueries, describeQuery, ipcMatches, InvalidFormulaError, type QueryCandidate } from '@/lib/kipris-query';
@@ -167,6 +169,11 @@ export async function GET(request: NextRequest) {
   const denied = await requireSchool(request);
   if (denied) return denied;
     const { searchParams } = new URL(request.url);
+    const inventionId = searchParams.get('inventionId');
+    if (inventionId) {
+        const school = await getRequestSchool(request);
+        if (!school || !getSchoolInvention(school.slug, inventionId)) return errorResponse('발명을 찾을 수 없습니다.', 404);
+    }
     const formula = searchParams.get('q');
     const word = searchParams.get('word');
     const ipc = searchParams.get('ipc');

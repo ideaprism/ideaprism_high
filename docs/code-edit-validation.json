@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "mobile edit button visible without hover",
+    "active administrator code edited to 4 characters",
+    "current session renewed; old cookie rejected",
+    "new short administrator code logs in",
+    "four-character school code issued through UI and login succeeds"
+  ],
+  "consoleErrors": [],
+  "ownerAdministratorChanged": false
+}

@@ -83,6 +83,7 @@ export default async function InventionDetailPage({
                             <h1 className="text-3xl lg:text-4xl font-bold text-on-surface mb-4 leading-tight">
                                 {invention.original_title}
                             </h1>
+                            <p className="text-sm text-on-surface-variant">학생명: {invention.student_name} · {invention.school_name} · 수상 당시 {invention.grade_year}</p>
                         </div>
 
                         <div className="space-y-8 flex-1">

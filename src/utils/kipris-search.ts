@@ -2,7 +2,7 @@
  * KIPRIS 검색식 생성 유틸리티
  */
 
-import { createClient } from '@/utils/supabase/client'
+
 
 // 카테고리별 한글 레이블
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -38,47 +38,9 @@ export interface SearchFormula {
 /**
  * Supabase에서 keyword_dictionary 전체 조회
  */
-export async function fetchKeywordDictionary(): Promise<KeywordMatch[]> {
-    const supabase = createClient()
+export async function fetchKeywordDictionary(): Promise<KeywordMatch[]> { return [] }
+export async function fetchIpcDescription(_ipcCode: string): Promise<string | null> { return null }
 
-    const { data, error } = await (supabase as any)
-        .from('keyword_dictionary')
-        .select('word, category, priority')
-        .neq('category', 'stopword')
-        .order('priority', { ascending: true })
-
-    if (error) {
-        console.error('Failed to fetch keyword dictionary:', error)
-        return []
-    }
-
-    return (data as KeywordMatch[]) || []
-}
-
-/**
- * IPC 코드 설명 조회
- */
-export async function fetchIpcDescription(ipcCode: string): Promise<string | null> {
-    if (!ipcCode) return null
-
-    const supabase = createClient()
-
-    const { data, error } = await (supabase as any)
-        .from('ipc_descriptions')
-        .select('description')
-        .eq('ipc_code', ipcCode)
-        .single()
-
-    if (error || !data) {
-        return null
-    }
-
-    return data.description
-}
-
-/**
- * simple_title에서 사전 기반 키워드 추출
- */
 export function extractKeywords(title: string, dictionary: KeywordMatch[]): KeywordMatch[] {
     if (!title) return []
 

@@ -80,7 +80,7 @@ function ExpandableSection({ title, content, defaultOpen = false }: ExpandableSe
 /** 상세 모달을 열 때 따로 불러오는 본문 필드 */
 type InventionDetailFields = Pick<
     Invention,
-    'invention_motive' | 'detailed_summary' | 'problem' | 'solution' | 'next_step' | 'curriculum' | 'sdg'
+    'invention_motive' | 'detailed_summary' | 'problem' | 'solution' | 'next_step' | 'curriculum' | 'sdg' | 'student_name' | 'school_name' | 'grade_year' | 'keyword' | 'search_terms' | 'ipc_secondary' | 'competition_name' | 'round' | 'award_year' | 'award' | 'award_detail'
 >
 
 export function InventionDetailModal({ invention: baseInvention, onClose }: InventionDetailModalProps) {
@@ -245,11 +245,34 @@ export function InventionDetailModal({ invention: baseInvention, onClose }: Inve
                                             <table className="w-full text-sm text-left">
                                                 <tbody className="align-top">
                                                     <tr className="border-b border-dashed border-outline-variant/30">
+                                                        <th className="py-3 font-semibold text-on-surface-variant w-24">대회명</th>
+                                                        <td className="py-3 pl-4">{detailLoading ? '불러오는 중…' : invention.competition_name ? `${invention.round ? `제${invention.round}회 ` : ''}${invention.competition_name}` : '-'}</td>
+                                                    </tr>
+                                                    <tr className="border-b border-dashed border-outline-variant/30">
+                                                        <th className="py-3 font-semibold text-on-surface-variant w-24">연도</th>
+                                                        <td className="py-3 pl-4">{invention.award_year ? `${invention.award_year}년` : detailLoading ? '불러오는 중…' : '-'}</td>
+                                                    </tr>
+                                                    <tr className="border-b border-dashed border-outline-variant/30">
+                                                        <th className="py-3 font-semibold text-on-surface-variant w-24">상격</th>
+                                                        <td className="py-3 pl-4">{detailLoading ? '불러오는 중…' : <>
+                                                            <span>{invention.award || invention.award_detail || '-'}</span>
+                                                            {invention.award && invention.award_detail && invention.award !== invention.award_detail && <span className="mt-1 block text-xs text-on-surface-variant">{invention.award_detail}</span>}
+                                                        </>}</td>
+                                                    </tr>
+                                                    <tr className="border-b border-dashed border-outline-variant/30">
+                                                        <th className="py-3 font-semibold text-on-surface-variant w-24">학생명</th>
+                                                        <td className="py-3 pl-4">{detailLoading ? '불러오는 중…' : invention.student_name || '-'}</td>
+                                                    </tr>
+                                                    <tr className="border-b border-dashed border-outline-variant/30">
+                                                        <th className="py-3 font-semibold text-on-surface-variant w-24">수상 당시</th>
+                                                        <td className="py-3 pl-4">{invention.school_name || '-'} · {invention.grade_year || '-'}</td>
+                                                    </tr>
+                                                    <tr className="border-b border-dashed border-outline-variant/30">
                                                         <th className="py-3 font-semibold text-on-surface-variant w-24">원본 제목</th>
                                                         <td className="py-3 pl-4 text-on-surface font-medium">{invention.original_title}</td>
                                                     </tr>
                                                     <tr className="border-b border-dashed border-outline-variant/30">
-                                                        <th className="py-3 font-semibold text-on-surface-variant w-24">학교 구분</th>
+                                                        <th className="py-3 font-semibold text-on-surface-variant w-24">학년 구분</th>
                                                         <td className="py-3 pl-4 text-on-surface">{invention.grades?.name || '-'}</td>
                                                     </tr>
                                                     <tr className="border-b border-dashed border-outline-variant/30">

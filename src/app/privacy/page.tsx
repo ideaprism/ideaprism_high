@@ -12,8 +12,8 @@ export default function PrivacyPage() {
     <LegalDocument title="개인정보처리방침" effectiveDate={LEGAL_EFFECTIVE_DATE}>
       <p className="text-on-surface-variant">
         {OPERATOR.name}(이하 &lsquo;운영자&rsquo;)는 {SITE_NAME_KO}(IdeaPrism, 이하 &lsquo;서비스&rsquo;)를 이용하는
-        학생·교사·보호자의 개인정보를 소중히 여기며, 「개인정보 보호법」을 지킵니다. 서비스는 회원가입 없이
-        이용할 수 있으며, 학생에게 이름·연락처나 개인 계정 정보를 요구하지 않습니다. 관리자가 기관 코드를
+        학생·교사·보호자의 개인정보를 소중히 여기며, 「개인정보 보호법」을 지킵니다. 서비스는 관리자가 발급한 계정 코드로
+        이용할 수 있으며, 로그인할 때 학생의 이름·연락처를 입력받지 않습니다. 관리자가 계정 코드를
         관리할 때에는 기관 담당자 이름과 이메일을 입력할 수 있습니다.
       </p>
 
@@ -27,6 +27,7 @@ export default function PrivacyPage() {
             </tr>
           </thead>
           <tbody className="align-top">
+            <tr className="border-b border-outline-variant/20"><td className="py-2 pr-3">발명 자료</td><td className="py-2 pr-3">제공받은 수상작의 학생명, 학교명, 수상 당시 학년, 작품 내용과 사진</td><td className="py-2">해당 학교에 연결된 계정의 발명 탐구·검색</td></tr>
             <tr className="border-b border-outline-variant/20">
               <td className="py-2 pr-3">자동 생성 정보</td>
               <td className="py-2 pr-3">접속 기록(IP 주소, 브라우저 종류, 접속 시각), 방문한 페이지</td>
@@ -34,8 +35,8 @@ export default function PrivacyPage() {
             </tr>
             <tr className="border-b border-outline-variant/20">
               <td className="py-2 pr-3">학교 인증</td>
-              <td className="py-2 pr-3">입력한 학교 코드, 학교 식별자와 만료 시각을 담은 서명 쿠키</td>
-              <td className="py-2">학교 이용 확인 및 학교별 화면 제공</td>
+              <td className="py-2 pr-3">발급 계정 코드, 계정·학교 식별자, 세션 버전과 만료 시각을 담은 서명 쿠키</td>
+              <td className="py-2">계정 확인 및 소속 학교 자료 접근 통제</td>
             </tr>
             <tr>
               <td className="py-2 pr-3">기관 운영 관리</td>
@@ -49,7 +50,7 @@ export default function PrivacyPage() {
 
       <LegalSection title="2. 만 14세 미만 아동의 개인정보">
         <p>
-          서비스는 초·중·고 학생이 이용하는 서비스입니다. 운영자는 만 14세 미만 아동의 개인정보를 수집하지
+          서비스는 고등학교용 발명 자료 서비스입니다. 운영자는 만 14세 미만 아동의 개인정보를 수집하지
           않습니다. 앞으로 개인정보를 수집하는 기능을 추가할 경우, 법에 따라 법정대리인(보호자)의 동의를
           먼저 받습니다.
         </p>
@@ -66,7 +67,7 @@ export default function PrivacyPage() {
       <LegalSection title="4. 브라우저 저장 정보">
         <p>
           서비스는 광고·추적용 쿠키를 쓰지 않습니다. 학교 인증에는 자바스크립트로 읽을 수 없는 HttpOnly 쿠키를
-          사용합니다. 쿠키는 학교와 만료 시각을 포함하며 개인 계정 정보나 학교 코드 원문은 포함하지 않습니다.
+          사용합니다. 쿠키에는 계정 식별자, 학교, 세션 버전과 만료 시각이 포함되며 계정 코드 원문은 포함하지 않습니다.
           유효 기간은 12시간이며, 나가기 버튼이나 브라우저 설정에서 지울 수 있습니다.
           관리자 인증에는 별도 HttpOnly 쿠키를 사용하며 유효 기간은 8시간입니다.
         </p>
@@ -74,8 +75,8 @@ export default function PrivacyPage() {
 
       <LegalSection title="5. 외부 서비스 이용 (처리 위탁 및 국외 이전)">
         <ul className="list-disc pl-5 space-y-1">
-          <li>Vercel Inc.(미국): 웹사이트 호스팅</li>
-          <li>Supabase Inc.: 발명 데이터베이스 운영</li>
+          <li>발명 자료·사진과 계정 정보는 운영 서버의 비공개 저장소에서 관리합니다.</li>
+
           <li>
             한국특허정보원 KIPRIS Plus: 특허 검색. 이용자가 특허 검색을 하면 검색 키워드만 전달되며 개인정보는
             전달되지 않습니다.

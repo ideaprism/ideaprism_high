@@ -3,13 +3,13 @@ import { adminDb, adminDbConfigured, CODE_COLUMNS, CODE_PATTERN, codeIsUsable, t
 import { ADMIN_SESSION_COOKIE, createAdminSessionToken, isAdminOrgType } from '@/lib/admin-session'
 import { adminError, adminJson } from '@/lib/admin-response'
 import { adminLoginLimiter } from '@/lib/login-rate-limit'
+import { isSameOriginRequest } from '@/lib/request-origin'
 
 export async function POST(request: NextRequest) {
   const body: unknown = await request.json().catch(() => null)
   if (!body || typeof body !== 'object' || !('code' in body) || typeof body.code !== 'string' ||
     !CODE_PATTERN.test(body.code.trim().toUpperCase())) return adminJson({ error: '관리자 코드를 확인해 주세요.' }, 400)
-  const origin = request.headers.get('origin')
-  if (origin && origin !== request.nextUrl.origin) return adminJson({ error: 'Forbidden' }, 403)
+  if (!isSameOriginRequest(request)) return adminJson({ error: 'Forbidden' }, 403)
   if (!adminDbConfigured()) return adminJson({ error: '관리자 DB 연결 설정이 필요합니다.' }, 503)
   const client = (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local').slice(0, 128)
   const retryAfter = adminLoginLimiter(client)
@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
     if (!code || !org || !codeIsUsable(code) || !isAdminOrgType(org.org_type)) {
       return adminJson({ valid: false, error: '유효한 관리자 코드가 아닙니다.' }, 401)
     }
-    const token = await createAdminSessionToken({ codeId: code.id, orgId: org.id, orgName: org.name, orgType: org.org_type })
+    const token = await createAdminSessionToken({ codeId: code.id, version: code.session_version, orgId: org.id, orgName: org.name, orgType: org.org_type })
     // Compare-and-set avoids lost increments or exceeding a finite admission quota.
     const consumed = await adminDb<{ id: string }[]>('access_codes', {
       id: `eq.${code.id}`, is_active: 'eq.true', select: 'id',
+      session_version: `eq.${code.session_version}`,
       usage_count: code.usage_count === null ? 'is.null' : `eq.${code.usage_count}`,
       max_usage: code.max_usage === null ? 'is.null' : `eq.${code.max_usage}`,
       expires_at: code.expires_at === null ? 'is.null' : `eq.${code.expires_at}`,

@@ -9,6 +9,13 @@
 
 /** 인벤션 원시 데이터 (Supabase에서 받은 형태) */
 export interface InventionRaw {
+    round?: number | null
+    award?: string | null
+    award_detail?: string | null
+    grade_year?: string | number
+    award_year?: number | null
+    school_id?: string
+    student_name?: string
     id: string
     original_title: string
     simple_title: string | null
@@ -37,6 +44,7 @@ export interface LookupItem {
 
 /** 검색 API 응답 데이터 */
 export interface SearchData {
+    yearBounds?: { min: number; max: number }
     allInventions: InventionRaw[]
     grades: LookupItem[]
     categories: LookupItem[]
@@ -55,6 +63,7 @@ export interface SearchData {
 
 /** 문자열 기반 필터 상태 (ClientSearchPage에서 사용) */
 export interface Filters {
+    yearRange?: [number, number]
     gradeIds: number[]
     problemTags: string[]
     scamperTags: string[]

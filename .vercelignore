@@ -1,2 +1,10 @@
-# Vercel Ignore
-data/
+.git
+.env*
+private/accounts*
+private/*.txt
+private/*.json
+private/*.mjs
+private/*.log
+private/*.pid
+private/*validation/
+test-results

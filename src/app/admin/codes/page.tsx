@@ -10,17 +10,14 @@ import {
     Archive,
     History,
     RefreshCw,
-    TrendingUp
+    Pencil
 } from 'lucide-react'
 
-import { Database } from '@/types/supabase'
+import type { AdminCode } from '@/lib/admin-db'
+import { codeIsUsable } from '@/lib/access-code-status'
 import { DirectIssueModal } from '@/components/admin/DirectIssueModal'
-
-type AccessCodeWithOrg = Database['public']['Tables']['access_codes']['Row'] & {
-    partner_organizations: {
-        name: string
-    } | null
-}
+import { getSchoolBySlug } from '@/config/schools'
+type AccessCodeWithOrg = AdminCode
 
 export default function CodesPage() {
     const [codes, setCodes] = useState<AccessCodeWithOrg[]>([])
@@ -30,6 +27,7 @@ export default function CodesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingCodeId, setEditingCodeId] = useState<string | null>(null)
     const [editedCode, setEditedCode] = useState('')
+    const [savingCode, setSavingCode] = useState(false)
 
     const [loadError, setLoadError] = useState('')
     const [notice, setNotice] = useState('')
@@ -53,27 +51,33 @@ export default function CodesPage() {
         }
     }
 
-    const updateCodeValue = async (id: string) => {
-        if (!editedCode || editedCode.length < 4) {
-            setLoadError('코드는 최소 4자 이상이어야 합니다.')
+    const updateCodeValue = async (id: string, activate = false) => {
+        const normalizedCode = editedCode.trim().toUpperCase()
+        if (!/^[A-Z0-9_-]{4,128}$/.test(normalizedCode)) {
+            setLoadError('코드는 영문·숫자·_·- 4~128자로 입력해 주세요.')
             return
         }
-
+        if (savingCode) return
+        setSavingCode(true)
+        setLoadError('')
+        setNotice('')
         try {
             const res = await fetch('/api/admin/codes/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codeId: id, newCode: editedCode.toUpperCase() })
+                body: JSON.stringify({ codeId: id, newCode: normalizedCode, ...(activate ? { isActive: true } : {}) })
             })
             const result = await res.json()
-            if (result.error) throw new Error(result.error)
+            if (!res.ok || result.error) throw new Error(result.error || '코드 변경에 실패했습니다.')
 
-            setNotice('기관 코드가 변경되었습니다.')
+            setNotice(result.loginAvailable
+                ? '코드가 저장되었고 로그인할 수 있습니다. 다음 로그인부터 새 코드를 사용해 주세요.'
+                : '코드는 저장되었지만 현재 로그인할 수 없는 계정입니다. 활성 상태·사용 기간·로그인 횟수를 확인해 주세요.')
             setEditingCodeId(null)
-            fetchCodes()
+            await fetchCodes()
         } catch (error) {
             setLoadError(error instanceof Error ? error.message : '코드 변경에 실패했습니다.')
-        }
+        } finally { setSavingCode(false) }
     }
 
     const copyToClipboard = (text: string, id: string) => {
@@ -87,6 +91,8 @@ export default function CodesPage() {
             const response = await fetch('/api/admin/codes/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codeId: id, isActive: !currentStatus }) })
             const result = await response.json()
             if (!response.ok) throw new Error(result.error || '상태 변경 실패')
+            if (result.requiresRelogin) { window.location.assign('/admin-login'); return }
+            setNotice(result.loginAvailable ? '계정이 활성화되었습니다. 저장된 코드로 로그인할 수 있습니다.' : '현재 이 계정으로 로그인할 수 없습니다.')
             fetchCodes()
         } catch (error) {
             console.error('Error toggling code status:', error)
@@ -107,7 +113,7 @@ export default function CodesPage() {
                         <Key className="w-10 h-10 text-primary" />
                         발급된 코드 관리
                     </h1>
-                    <p className="text-slate-500 font-bold text-lg">공용 서비스의 기관 코드입니다. High 네 학교의 진입 코드와는 별개입니다.</p>
+                    <p className="text-slate-500 font-bold text-lg">관리자·학교 코드를 4자 이상으로 직접 정할 수 있습니다. 본인 코드를 바꾸면 현재 화면의 로그인은 유지되고, 다른 로그인은 해제됩니다.</p>
                 </div>
                 
                 <button 
@@ -164,12 +170,12 @@ export default function CodesPage() {
                         <div key={i} className="h-64 bg-slate-100 rounded-[40px] animate-pulse" />
                     ))
                 ) : filteredCodes.map((item) => (
-                    <div key={item.id} className={`bg-white p-8 rounded-[40px] border transition-all duration-300 relative group overflow-hidden ${item.is_active ? 'border-slate-200 hover:shadow-2xl hover:-translate-y-1' : 'border-slate-100 opacity-60 grayscale'}`}>
+                    <div key={item.id} className={`bg-white p-8 rounded-[40px] border transition-all duration-300 relative group overflow-hidden ${codeIsUsable(item) ? 'border-slate-200 hover:shadow-2xl hover:-translate-y-1' : 'border-amber-300'}`}>
                         {/* Status Badge */}
                         <div className="absolute top-8 right-8 flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${item.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-300'}`} />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                {item.is_active ? 'Active' : 'Inactive'}
+                            <div className={`w-2 h-2 rounded-full ${codeIsUsable(item) ? 'bg-emerald-400' : 'bg-amber-500'}`} />
+                            <span className="text-xs font-bold text-slate-600">
+                                {codeIsUsable(item) ? '로그인 가능' : '로그인 불가'}
                             </span>
                         </div>
 
@@ -177,10 +183,11 @@ export default function CodesPage() {
                             <div className="mb-8">
                                 <div className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Partner Org</div>
                                 <h3 className="text-xl font-black text-slate-900 line-clamp-1">{item.partner_organizations?.name}</h3>
-                                <p className="text-xs text-slate-400 font-bold mt-1">{item.label || '공식 액세스 코드'}</p>
+                                <p className="text-xs text-slate-400 font-bold mt-1">{item.partner_organizations?.school_id ? getSchoolBySlug(item.partner_organizations.school_id)?.name : '관리자'} · {item.label || '발급 계정'}</p>
                             </div>
 
                             <div className="bg-slate-50 rounded-3xl p-6 mb-8 relative group/code overflow-hidden border border-slate-100">
+                                {!item.is_active && <p className="mb-4 rounded-lg bg-amber-100 p-3 text-sm font-semibold text-amber-900">비활성 계정입니다. 코드를 바꾸어도 활성화하기 전에는 로그인할 수 없습니다.</p>}
                                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center justify-between">
                                     Access Code
                                     {!editingCodeId && (
@@ -189,10 +196,11 @@ export default function CodesPage() {
                                                 setEditingCodeId(item.id)
                                                 setEditedCode(item.code)
                                             }}
-                                            className="p-1 hover:bg-primary/10 rounded-lg text-primary transition-all opacity-0 group-hover:opacity-100"
+                                            type="button"
+                                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/20 bg-white text-primary hover:bg-primary/10 transition-colors text-xs font-bold tracking-normal"
                                             title="코드 수정"
                                         >
-                                            <TrendingUp className="w-3.5 h-3.5 rotate-90" /> {/* Edit Icon Replacement */}
+                                            <Pencil className="w-3.5 h-3.5" /> 코드 수정
                                         </button>
                                     )}
                                 </div>
@@ -202,21 +210,32 @@ export default function CodesPage() {
                                         <input 
                                             type="text" 
                                             aria-label="새 기관 코드"
+                                            minLength={4}
                                             maxLength={128}
+                                            disabled={savingCode}
                                             value={editedCode}
                                             onChange={(e) => setEditedCode(e.target.value.toUpperCase())}
                                             className="w-full px-4 py-2 bg-white border-2 border-primary rounded-xl font-black text-slate-900 outline-none tracking-widest"
                                             autoFocus
                                         />
+                                        <p className="text-xs text-slate-500">영문·숫자·_·- 4자 이상. 예: ADMIN1, MIRAE</p>
+                                        {!item.is_active && <button
+                                            type="button"
+                                            onClick={() => updateCodeValue(item.id, true)}
+                                            disabled={savingCode}
+                                            className="w-full rounded-lg bg-primary px-3 py-3 text-sm font-bold text-white disabled:opacity-50"
+                                        >{savingCode ? '저장 중…' : '저장하고 활성화'}</button>}
                                         <div className="flex gap-2">
                                             <button 
                                                 onClick={() => updateCodeValue(item.id)}
+                                                disabled={savingCode}
                                                 className="flex-1 py-2 bg-primary text-white text-[10px] font-black rounded-lg hover:bg-primary/90 transition-all"
                                             >
-                                                저장
+                                                {savingCode ? '저장 중…' : item.is_active ? '저장' : '코드만 저장'}
                                             </button>
                                             <button 
                                                 onClick={() => setEditingCodeId(null)}
+                                                disabled={savingCode}
                                                 className="flex-1 py-2 bg-slate-200 text-slate-600 text-[10px] font-black rounded-lg hover:bg-slate-300 transition-all"
                                             >
                                                 취소
@@ -261,7 +280,7 @@ export default function CodesPage() {
                                     className={`flex items-center gap-2 text-xs font-black transition-colors ${item.is_active ? 'text-slate-400 hover:text-red-500' : 'text-primary hover:text-primary/80'}`}
                                 >
                                     {item.is_active ? <Archive className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-                                    {item.is_active ? '비활성화' : '활성화'}
+                                    {item.is_active ? '로그인 중지' : '계정 활성화'}
                                 </button>
                             </div>
                         </div>

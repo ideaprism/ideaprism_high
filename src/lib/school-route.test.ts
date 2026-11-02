@@ -11,7 +11,7 @@ import { POST as chat } from '@/app/api/chat/route';
 process.env.SCHOOL_SESSION_SECRET = 'school-route-test-secret-0123456789';
 
 test('school middleware recognizes detail and base chat API paths', async () => {
-  const token = await createSchoolSessionToken('mirae');
+  const token = await createSchoolSessionToken('mirae', '11111111-1111-4111-8111-111111111111');
   for (const path of ['/api/search', '/api/inventions/elem-10001', '/api/kipris/search', '/api/chat']) {
     const response = await middleware(new NextRequest(`http://localhost${path}`, {
       headers: { Cookie: `${SCHOOL_SESSION_COOKIE}=${token}` },
@@ -31,7 +31,7 @@ test('route handlers deny access independently of middleware', async () => {
 
 test('unauthenticated API access is denied, and school sessions do not grant admin access', async () => {
   assert.equal((await middleware(new NextRequest('http://localhost/api/search'))).status, 401);
-  const token = await createSchoolSessionToken('mirae');
+  const token = await createSchoolSessionToken('mirae', '11111111-1111-4111-8111-111111111111');
   assert.equal((await middleware(new NextRequest('http://localhost/api/admin/inquiries', {
     headers: { Cookie: `${SCHOOL_SESSION_COOKIE}=${token}` },
   }))).status, 401);

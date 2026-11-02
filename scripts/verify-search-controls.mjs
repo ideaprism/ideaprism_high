@@ -1,0 +1,91 @@
+import assert from 'node:assert/strict'
+import { config } from 'dotenv'
+import { DatabaseSync } from 'node:sqlite'
+import { createRequire } from 'node:module'
+import { mkdirSync, writeFileSync } from 'node:fs'
+config({ path: '.env.local', quiet: true })
+const require = createRequire(import.meta.url)
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE_DIR || 'playwright')
+const base = 'http://127.0.0.1:3102'
+const db = new DatabaseSync(process.env.LOCAL_AUTH_DB_PATH || 'private/accounts.sqlite', { readOnly: true })
+const account = db.prepare("SELECT c.code FROM access_codes c JOIN partner_organizations o ON o.id=c.organization_id WHERE o.school_id='mirae' AND c.is_active=1 AND o.is_active=1 LIMIT 1").get()
+db.close()
+assert.ok(account)
+const browser = await chromium.launch({ channel: 'msedge', headless: true })
+const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+await context.route('**/*', route => new URL(route.request().url()).origin === base ? route.continue() : route.abort())
+const page = await context.newPage()
+const errors = []
+page.on('pageerror', error => errors.push(error.message))
+const checks = []
+async function search(keyword) {
+  await page.getByPlaceholder('어떤 발명품을 찾고 계신가요?').fill(keyword)
+  const response = page.waitForResponse(r => r.url() === base + '/api/search')
+  await page.getByRole('button', { name: '검색', exact: true }).click()
+  return (await response).json()
+}
+async function showAll(index) {
+  const response = page.waitForResponse(r => r.url() === base + '/api/search')
+  await page.getByRole('button', { name: '모든 데이터 보기', exact: true }).nth(index).click()
+  assert.equal((await (await response).json()).totalCount, 167)
+  await page.getByRole('heading', { name: '총 167개의 결과', exact: true }).waitFor()
+  assert.equal(await page.getByPlaceholder('어떤 발명품을 찾고 계신가요?').inputValue(), '')
+}
+try {
+  await page.goto(base)
+  await page.getByLabel('계정 코드', { exact: true }).fill(account.code)
+  await page.getByRole('button', { name: '들어가기' }).click()
+  await page.locator('html[data-school="mirae"]').waitFor()
+  assert.equal(await page.getByText('인기 검색어:', { exact: true }).count(), 0)
+  const initial = page.waitForResponse(r => r.url() === base + '/api/search')
+  await page.goto(base + '/search')
+  const all = await (await initial).json()
+  assert.equal(all.totalCount, 167)
+  assert.equal(await page.getByRole('button', { name: '모든 데이터 보기', exact: true }).count(), 2)
+  await page.getByRole('heading', { name: '학년 구분', exact: true }).waitFor()
+  const grade = page.getByRole('button', { name: /^1학년 \(/ })
+  await grade.click()
+  const firstGrade = all.allInventions.filter(row => row.grade_id === 1)
+  await page.getByRole('heading', { level: 3 }).filter({ hasText: firstGrade[0].simple_title || firstGrade[0].original_title }).first().waitFor()
+  const end = page.getByRole('slider', { name: '종료 연도', exact: true })
+  const start = page.getByRole('slider', { name: '시작 연도', exact: true })
+  await end.focus()
+  await end.press('ArrowLeft')
+  const lastYear = all.yearBounds.max - 1
+  assert.equal(await end.inputValue(), String(lastYear))
+  const expected = firstGrade.filter(row => row.award_year <= lastYear)
+  assert.ok(expected.length)
+  // The result formula ends in the current filtered count.
+  await page.getByText(`${expected.length}개의 결과`, { exact: true }).waitFor()
+  checks.push('actual student grade and inclusive award-year range filter together')
+
+  const bounds = await start.boundingBox()
+  await page.mouse.move(bounds.x + 12, bounds.y + bounds.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(bounds.x + bounds.width / 3, bounds.y + bounds.height / 2, { steps: 8 })
+  await page.mouse.up()
+  assert.ok(Number(await start.inputValue()) > all.yearBounds.min)
+  checks.push('year handle supports mouse drag and keyboard adjustment')
+  await showAll(0)
+  assert.equal(await start.inputValue(), String(all.yearBounds.min))
+  assert.equal(await end.inputValue(), String(all.yearBounds.max))
+  assert.equal(new URL(page.url()).search, '')
+  checks.push('top all-data button clears keyword, grade, tags, year range and URL filters')
+
+  assert.equal((await search('없는검색결과가나다라마')).totalCount, 0)
+  await page.getByRole('heading', { name: '총 0개의 결과', exact: true }).waitFor()
+  await showAll(1)
+  checks.push('result-count all-data button restores all school records from zero results')
+  await page.getByRole('button', { name: /^S\(대체\)/ }).click()
+  await showAll(0)
+  checks.push('all-data also resets SCAMPER selection')
+  mkdirSync('private/search-controls-validation', { recursive: true })
+  await page.screenshot({ path: 'private/search-controls-validation/desktop.png', fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.screenshot({ path: 'private/search-controls-validation/mobile.png', fullPage: true })
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  assert.deepEqual(errors, [])
+  const report = { checks, total: all.totalCount, yearBounds: all.yearBounds, mobileOverflow: false, consoleErrors: errors }
+  writeFileSync('docs/search-controls-validation.json', JSON.stringify(report, null, 2) + '\n')
+  console.log(JSON.stringify(report, null, 2))
+} finally { await browser.close() }

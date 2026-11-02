@@ -22,6 +22,14 @@ const data = [
   inv('4', 2, '안전(위험)', 'S'),
 ];
 
+test('year handles include both boundaries and combine with grade and facet filters', () => {
+  const rows = data.map((row, index) => ({ ...row, award_year: 2020 + index }));
+  const filters = { gradeIds: [2], problemTags: [], scamperTags: [], yearRange: [2021, 2022] as [number, number] };
+  assert.deepEqual(filterInventionsByFilters(rows, filters).map(row => row.id), ['3']);
+  assert.deepEqual(calculateFacetCounts(rows, filters).grades, { 1: 1, 2: 1 });
+  assert.equal(filterInventionsByFilters(rows, { ...filters, gradeIds: [], yearRange: [2020, 2023] }).length, 4);
+});
+
 test('필터 없으면 전체 기준 집계', () => {
   const f = calculateFacetCounts(data);
   assert.deepEqual(f.grades, { 1: 2, 2: 2 });

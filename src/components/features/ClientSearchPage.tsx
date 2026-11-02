@@ -8,14 +8,13 @@ import { ViewToggle } from '@/components/features/ViewToggle'
 import { SearchBar, SearchFilters, SearchPagination } from '@/components/search'
 import { useFilters, usePagination, useResetPageOnChange } from '@/hooks'
 import { DbWarmingBanner } from '@/components/ui/DbWarmingBanner'
-import { POPULAR_KEYWORDS } from '@/constants/home'
 import type { SearchData } from '@/types/search'
 
 interface ClientSearchPageProps {
   initialKeyword?: string
 }
 
-const GUEST_NOTICE = '체험 모드에서는 인기 검색어만 이용 가능합니다.'
+const GUEST_NOTICE = '접근 권한을 확인해 주세요.'
 const MAX_AUTO_RETRIES = 2
 
 const EMPTY_SEARCH_DATA: SearchData = {
@@ -33,7 +32,6 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
   const initialProblem = searchParams.get('problem') || ''
 
   const isGuest = false // School access is established by the server session.
-  const isPopularKeyword = (value: string) => POPULAR_KEYWORDS.includes(value.trim())
 
   const [inputValue, setInputValue] = useState(initialKeyword)
   const [searchKeyword, setSearchKeyword] = useState(initialKeyword)
@@ -49,6 +47,8 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
 
   const {
     filters,
+    clearAll,
+    setYearRange,
     toggleGrade,
     toggleProblem,
     toggleScamper,
@@ -61,15 +61,8 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
 
   const handleSearch = () => {
     const normalized = inputValue.trim()
-    if (normalized.length < 2) return
+    if (normalized.length === 1) return
 
-    if (isGuest && !isPopularKeyword(normalized)) {
-      setGuestNotice(GUEST_NOTICE)
-      setError(null)
-      setSearchData(EMPTY_SEARCH_DATA)
-      setIsLoading(false)
-      return
-    }
 
     setGuestNotice('')
     retryCountRef.current = 0
@@ -78,16 +71,20 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
     setRetryTrigger((previous) => previous + 1)
   }
 
-  const handlePopularKeywordClick = (keyword: string) => {
-    setInputValue(keyword)
+
+  const handleShowAll = () => {
+    clearAll()
+    setInputValue('')
+    setSearchKeyword('')
     setGuestNotice('')
     retryCountRef.current = 0
     setRetryCount(0)
-    setSearchKeyword(keyword)
-    setRetryTrigger((previous) => previous + 1)
+    resetPage()
+    setRetryTrigger(previous => previous + 1)
+    window.history.replaceState(null, '', viewMode === 'list' ? '/search?view=list' : '/search')
   }
 
-  const isValidKeyword = inputValue.trim().length >= 2
+  const isValidKeyword = inputValue.trim().length !== 1
 
   useEffect(() => {
     const abortController = new AbortController()
@@ -199,7 +196,7 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
 
   const enrichedInventions = useMemo(() => {
     if (!searchData) return []
-    const isRestrictedQuery = isGuest && !POPULAR_KEYWORDS.includes(searchKeyword)
+    const isRestrictedQuery = false
 
     return paginatedInventions.map((inv) => ({
       ...inv,
@@ -207,7 +204,7 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
       categories: searchData.categories.find((c) => c.id === inv.category_id),
       isRestricted: isRestrictedQuery,
     }))
-  }, [paginatedInventions, searchData, isGuest, searchKeyword])
+  }, [paginatedInventions, searchData])
 
   const selectedGradeNames = useMemo(() => {
     if (!searchData) return []
@@ -223,29 +220,11 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
           value={inputValue}
           onChange={setInputValue}
           onSearch={handleSearch}
+          onShowAll={handleShowAll}
           isValid={isValidKeyword}
         />
 
-        {isGuest && (
-          <div className="w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24 mt-2">
-            <div className="max-w-4xl mx-auto">
-              {guestNotice && <p className="text-sm font-semibold text-primary mb-3">{guestNotice}</p>}
 
-              <div className="flex flex-wrap items-center gap-2 bg-primary/5 border border-primary/20 rounded-2xl px-4 py-3">
-                <span className="text-xs md:text-sm font-semibold text-slate-600 mr-1">인기 검색어</span>
-                {POPULAR_KEYWORDS.map((keyword) => (
-                  <button
-                    key={keyword}
-                    onClick={() => handlePopularKeywordClick(keyword)}
-                    className="px-3 py-1.5 text-xs md:text-sm rounded-full bg-white border border-primary/25 text-primary font-semibold hover:bg-primary hover:text-white transition-colors"
-                  >
-                    {keyword}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {searchData && (
@@ -259,13 +238,15 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
           onClearGrades={clearGrades}
           onClearProblems={clearProblems}
           onClearScampers={clearScampers}
+          onYearRangeChange={setYearRange}
         />
       )}
 
       <main className="w-full max-w-7xl mx-auto px-6 py-10 flex-1">
         {isWarming && <DbWarmingBanner retryCount={retryCount} />}
 
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
           <div>
             {isLoading ? (
               <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
@@ -283,6 +264,8 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
             ) : (
               <div />
             )}
+          </div>
+          <button onClick={handleShowAll} className="rounded-xl border border-primary/30 px-4 py-2 text-sm font-bold text-primary hover:bg-primary/10">모든 데이터 보기</button>
           </div>
           <ViewToggle />
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
-import type { InventionRaw, Filters, FacetCounts, LookupItem } from '@/types/search'
+import { useState, useCallback } from 'react'
+import type { InventionRaw, Filters, FacetCounts } from '@/types/search'
 
 /**
  * useFilters 옵션
@@ -21,6 +21,7 @@ interface UseFiltersOptions {
  * useFilters 반환 타입
  */
 interface UseFiltersReturn {
+    setYearRange: (range: [number, number]) => void
     // 필터 상태
     filters: Filters
 
@@ -126,34 +127,7 @@ export function useFilters(options: UseFiltersOptions = {}): UseFiltersReturn {
     // ========================================
 
     const filterInventions = useCallback((inventions: InventionRaw[]): InventionRaw[] => {
-        return inventions.filter(inv => {
-            // Grade 필터
-            if (filters.gradeIds.length > 0) {
-                if (!inv.grade_id || !filters.gradeIds.includes(inv.grade_id)) {
-                    return false
-                }
-            }
-
-            // Problem Tag 필터
-            if (filters.problemTags.length > 0) {
-                const invTags = inv.problem_tag
-                    ? inv.problem_tag.split(',').map(t => t.trim())
-                    : []
-                const hasMatch = filters.problemTags.some(tag => invTags.includes(tag))
-                if (!hasMatch) return false
-            }
-
-            // SCAMPER Tag 필터
-            if (filters.scamperTags.length > 0) {
-                const invTags = inv.scamper
-                    ? inv.scamper.split(',').map(t => t.trim())
-                    : []
-                const hasMatch = filters.scamperTags.some(tag => invTags.includes(tag))
-                if (!hasMatch) return false
-            }
-
-            return true
-        })
+        return filterInventionsByFilters(inventions, filters)
     }, [filters])
 
     // ========================================
@@ -169,6 +143,7 @@ export function useFilters(options: UseFiltersOptions = {}): UseFiltersReturn {
     }, [filters])
 
     return {
+        setYearRange: (yearRange) => setFilters(prev => ({ ...prev, yearRange })),
         filters,
         toggleGrade,
         toggleProblem,
@@ -193,6 +168,7 @@ export function filterInventionsByFilters(
     filters: Filters
 ): InventionRaw[] {
     return inventions.filter(inv => {
+        if (filters.yearRange && (inv.award_year == null || inv.award_year < filters.yearRange[0] || inv.award_year > filters.yearRange[1])) return false
         if (filters.gradeIds.length > 0) {
             if (!inv.grade_id || !filters.gradeIds.includes(inv.grade_id)) {
                 return false

@@ -1,0 +1,21 @@
+{
+  "base": "http://127.0.0.1:3102",
+  "schoolCounts": {
+    "mirae": 167,
+    "boseong": 82,
+    "samil": 70,
+    "daegwang": 5
+  },
+  "checks": [
+    "4x4 HTTP detail/photo access matrix, student names, original photo hashes",
+    "anonymous API, raw JSON/photos, private paths and Next image optimizer denied",
+    "excluded record denied, missing photo remains null, foreign server-rendered detail denied",
+    "issued-account rotation and disable/re-enable revoke previous cookies"
+  ],
+  "patent": {
+    "status": 200,
+    "success": true,
+    "totalCount": 24139,
+    "error": null
+  }
+}

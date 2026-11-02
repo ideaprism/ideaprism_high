@@ -12,11 +12,11 @@ const signed = (payload: unknown) => {
 };
 
 test('each school can create and verify its own session', async () => {
-  for (const slug of SCHOOL_SLUGS) assert.equal(await verifySchoolSessionToken(await createSchoolSessionToken(slug)), slug);
+  for (const slug of SCHOOL_SLUGS) assert.equal(await verifySchoolSessionToken(await createSchoolSessionToken(slug, '11111111-1111-4111-8111-111111111111')), slug);
 });
 
 test('tampered and extra-segment school sessions are rejected', async () => {
-  const token = await createSchoolSessionToken('daegwang');
+  const token = await createSchoolSessionToken('daegwang', '11111111-1111-4111-8111-111111111111');
   assert.equal(await verifySchoolSessionToken(`${token}extra`), null);
   assert.equal(await verifySchoolSessionToken(`${token}.extra`), null);
 });
@@ -35,7 +35,7 @@ test('a missing school secret fails closed even when an admin secret exists', as
   delete process.env.SCHOOL_SESSION_SECRET;
   process.env.ADMIN_SESSION_SECRET = secret;
   try {
-    await assert.rejects(createSchoolSessionToken('daegwang'), /SCHOOL_SESSION_SECRET/);
+    await assert.rejects(createSchoolSessionToken('daegwang', '11111111-1111-4111-8111-111111111111'), /SCHOOL_SESSION_SECRET/);
     assert.equal(await verifySchoolSessionToken(signed({ aud: 'ideaprism-high', slug: 'daegwang', exp: 2_000_000_000 })), null);
   } finally {
     process.env.SCHOOL_SESSION_SECRET = secret;

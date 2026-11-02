@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "administrator UI issues a school-bound account",
+    "issued code logs into the associated school",
+    "catalog hygiene/SCAMPER filters are selectable",
+    "keyword search, detail student name and original photo render",
+    "patent auto-search sends package terms on its first request",
+    "missing-photo fallback and student name render at mobile size",
+    "disabled account returns to login on page access"
+  ],
+  "patentRequestValid": true,
+  "patentStatus": 200,
+  "consoleErrors": []
+}

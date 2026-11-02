@@ -6,6 +6,7 @@ const DEFAULT_TTL_SECONDS = 60 * 60 * 8;
 export interface AdminSessionPayload {
   aud: 'ideaprism-high-admin';
   codeId?: string;
+  version?: number;
   orgId: string;
   orgName: string;
   orgType: string;
@@ -14,6 +15,7 @@ export interface AdminSessionPayload {
 
 interface CreateSessionInput {
   codeId?: string;
+  version?: number;
   orgId: string;
   orgName: string;
   orgType: string;
@@ -68,6 +70,7 @@ export async function createAdminSessionToken(input: CreateSessionInput): Promis
   const payload: AdminSessionPayload = {
     aud: 'ideaprism-high-admin',
     codeId: input.codeId,
+    version: input.version,
     orgId: input.orgId,
     orgName: input.orgName,
     orgType: input.orgType,

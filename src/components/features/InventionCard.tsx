@@ -3,6 +3,17 @@ import { Card } from '@/components/ui/Card'
 import { ImageIcon, Lock } from 'lucide-react'
 
 export interface Invention {
+    competition_name?: string | null
+    round?: number | null
+    award_year?: number | null
+    award?: string | null
+    award_detail?: string | null
+    student_name?: string
+    school_name?: string
+    grade_year?: string | number
+    keyword?: string
+    ipc_secondary?: string[]
+    search_terms?: { problem: string[]; method: string[]; effect: string[] }
     id: string
     original_title: string
     simple_title: string | null
@@ -61,11 +72,6 @@ export function InventionCard({ invention, onClick }: InventionCardProps) {
                     {invention.simple_title || invention.original_title}
                 </h3>
                 
-                {/* Summary (Original Minimalist) */}
-                <p className={`mt-2 text-xs text-on-surface-variant line-clamp-2 leading-relaxed ${invention.isRestricted ? 'blur-[4px] select-none text-slate-400' : ''}`}>
-                    {invention.simple_summary || invention.detailed_summary || invention.invention_motive || "요약이 없는 발명품입니다. 눌러서 자세히 보세요."}
-                </p>
-
                 <div className="mt-auto pt-3 flex items-center justify-between">
                     <span className="text-[10px] text-outline font-black uppercase tracking-widest">
                         {invention.categories?.name || "기타"}

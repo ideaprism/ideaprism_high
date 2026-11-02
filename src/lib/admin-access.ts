@@ -6,5 +6,6 @@ export async function isActiveAdmin(session: AdminSessionPayload): Promise<boole
   if (!session.codeId || !UUID_PATTERN.test(session.codeId)) return false
   const [code] = await adminDb<AdminCode[]>('access_codes', { select: CODE_COLUMNS, id: `eq.${session.codeId}`, limit: '1' })
   return Boolean(code && codeIsActive(code) && code.organization_id === session.orgId &&
+    code.session_version === session.version &&
     isAdminOrgType(code.partner_organizations?.org_type))
 }

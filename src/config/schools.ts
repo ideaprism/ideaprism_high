@@ -65,7 +65,7 @@ export const SCHOOLS: SchoolProfile[] = [
     region: '수원',
     englishName: 'Samil Technical High School',
     motto: '사랑과 봉사',
-    established: '1905',
+    established: '1902',
     logoSrc: '/schools/samil.png',
     primary: '#6E2B55',
     onPrimary: '#FFF8FB',

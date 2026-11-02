@@ -1,3 +1,5 @@
+import { testStore, testSchoolToken } from '@/lib/test-accounts';
+testStore();
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { NextRequest } from 'next/server';
@@ -16,15 +18,15 @@ for (const body of [null, [], { keyword: 123 }, { keyword: [] }, { keyword: '우
   });
 }
 
-test('missing keyword retains the empty-search response', async () => {
+test('empty keyword lists only the account school', async () => {
   const response = await POST(await schoolRequest('http://localhost/api/search', { method: 'POST', body: '{}' }));
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).totalCount, 0);
+  assert.equal((await response.json()).totalCount, 167);
 });
 
 process.env.SCHOOL_SESSION_SECRET = 'school-api-test-secret-0123456789';
 async function schoolRequest(url: string, init: ConstructorParameters<typeof NextRequest>[1] = {}) {
-  const token = await createSchoolSessionToken('mirae');
+  const token = await testSchoolToken('mirae');
   const headers = new Headers(init.headers);
   headers.set('Cookie', SCHOOL_SESSION_COOKIE + '=' + token);
   return new NextRequest(url, { ...init, headers });

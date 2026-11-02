@@ -3,10 +3,12 @@ import { isSchoolSlug, type SchoolSlug } from '@/config/schools'
 export const SCHOOL_SESSION_COOKIE = 'ideaprism_school_session'
 const SESSION_TTL_SECONDS = 60 * 60 * 12
 
-interface SchoolTokenPayload {
+export interface SchoolTokenPayload {
   aud: 'ideaprism-high'
   slug: SchoolSlug
   exp: number
+  codeId: string
+  version: number
 }
 
 function getSecret(): string | null {
@@ -48,7 +50,7 @@ async function sign(value: string, secret: string): Promise<string> {
   return toBase64Url(new Uint8Array(signature))
 }
 
-export async function createSchoolSessionToken(slug: SchoolSlug): Promise<string> {
+export async function createSchoolSessionToken(slug: SchoolSlug, codeId: string, version = 1): Promise<string> {
   const secret = getSecret()
   if (!secret) {
     throw new Error('Missing SCHOOL_SESSION_SECRET')
@@ -57,6 +59,8 @@ export async function createSchoolSessionToken(slug: SchoolSlug): Promise<string
   const payload: SchoolTokenPayload = {
     aud: 'ideaprism-high',
     slug,
+    codeId,
+    version,
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
   }
   const payloadEncoded = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)))
@@ -64,7 +68,7 @@ export async function createSchoolSessionToken(slug: SchoolSlug): Promise<string
   return `${payloadEncoded}.${signature}`
 }
 
-export async function verifySchoolSessionToken(token: string): Promise<SchoolSlug | null> {
+export async function verifySchoolSessionPayload(token: string): Promise<SchoolTokenPayload | null> {
   try {
     const secret = getSecret()
     if (!secret) return null
@@ -83,11 +87,16 @@ export async function verifySchoolSessionToken(token: string): Promise<SchoolSlu
     ) as SchoolTokenPayload
 
     if (payload?.aud !== 'ideaprism-high' || !isSchoolSlug(payload.slug)) return null
+    if (typeof payload.codeId !== 'string' || !/^[0-9a-f-]{36}$/i.test(payload.codeId) ||
+      !Number.isSafeInteger(payload.version) || payload.version < 1) return null
     if (!Number.isSafeInteger(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) return null
-    return payload.slug
+    return payload
   } catch {
     return null
   }
 }
 
 export const SCHOOL_SESSION_MAX_AGE = SESSION_TTL_SECONDS
+export async function verifySchoolSessionToken(token: string): Promise<SchoolSlug | null> {
+  return (await verifySchoolSessionPayload(token))?.slug ?? null
+}

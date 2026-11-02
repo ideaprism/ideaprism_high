@@ -1,3 +1,5 @@
+import { testStore, testSchoolToken } from '@/lib/test-accounts';
+testStore();
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { NextRequest } from 'next/server';
@@ -36,7 +38,7 @@ test('upstream timeout has a stable 504 response', async (t) => {
 
 process.env.SCHOOL_SESSION_SECRET = 'school-api-test-secret-0123456789';
 async function schoolRequest(url: string, init: ConstructorParameters<typeof NextRequest>[1] = {}) {
-  const token = await createSchoolSessionToken('mirae');
+  const token = await testSchoolToken('mirae');
   const headers = new Headers(init.headers);
   headers.set('Cookie', SCHOOL_SESSION_COOKIE + '=' + token);
   return new NextRequest(url, { ...init, headers });

@@ -1,11 +1,13 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { YearRange } from './YearRange'
 import { isValidProblemTag, getProblemColorClass, getScamperColorClass, getScamperLabel } from '@/utils/tag-styles'
 import { AlertTriangle, CloudOff, Trash2, Frown, Settings2, MoreHorizontal, Replace, Combine, Lightbulb, Scaling, ArrowRightLeft, FlipHorizontal2 } from 'lucide-react'
 import type { LookupItem, Filters, FacetCounts, SearchData } from '@/types/search'
 
 interface SearchFiltersProps {
+    onYearRangeChange?: (range: [number, number]) => void
     searchData: SearchData
     filters: Filters
     facetCounts: FacetCounts
@@ -143,7 +145,8 @@ export function SearchFilters({
     onToggleScamper,
     onClearGrades,
     onClearProblems,
-    onClearScampers
+    onClearScampers,
+    onYearRangeChange
 }: SearchFiltersProps) {
     // Problem 태그 정렬 - 성능-편의-안전-환경-경제-기타 순서
     const sortedProblemTags = [...searchData.problemTags]
@@ -171,7 +174,7 @@ export function SearchFilters({
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="flex flex-col gap-6 py-4">
                         <FilterRow
-                            title="학교 구분"
+                            title="학년 구분"
                             items={searchData.grades}
                             selectedItems={filters.gradeIds}
                             counts={facetCounts.grades}
@@ -207,6 +210,7 @@ export function SearchFilters({
                             isScamper={true}
                             getLabel={getScamperLabel}
                         />
+                        {searchData.yearBounds && onYearRangeChange && <YearRange bounds={searchData.yearBounds} value={filters.yearRange} onChange={onYearRangeChange} />}
                     </div>
                 </div>
             </div>

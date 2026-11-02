@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from './admin-session';
 import { isActiveAdmin } from './admin-access';
 import { adminError, adminJson } from './admin-response';
+import { isSameOriginRequest } from './request-origin';
 
 export async function requireAdmin(request: NextRequest): Promise<NextResponse | null> {
-  const origin = request.headers.get('origin');
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && origin && origin !== request.nextUrl.origin) {
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && !isSameOriginRequest(request)) {
     return adminJson({ error: 'Forbidden' }, 403);
   }
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;

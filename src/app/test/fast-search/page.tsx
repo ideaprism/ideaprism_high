@@ -48,7 +48,7 @@ export default function FastSearchPage() {
                 const response = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keyword, page: 1, limit: 1000 })
+                    body: JSON.stringify({ keyword, page: 1, limit: 500 })
                 })
 
                 if (!response.ok) throw new Error('Search failed')
