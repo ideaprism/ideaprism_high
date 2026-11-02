@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { SHOW_INVENTION_MOTIVE } from '@/lib/features';
 import type { KiprisSearchResponse, KiprisPatent } from '@/types/kipris';
 import {
     fetchKeywordDictionary,
@@ -346,7 +347,7 @@ function InventionDetailView({
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {invention.invention_motive && (
+                            {SHOW_INVENTION_MOTIVE && invention.invention_motive && (
                                 <div className="p-4 bg-gray-50 rounded-lg">
                                     <h4 className="font-semibold text-indigo-600 mb-2">발명 동기</h4>
                                     <p className="text-sm text-gray-700 leading-relaxed">{invention.invention_motive}</p>

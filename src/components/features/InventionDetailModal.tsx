@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, ExternalLink, ImageIcon, BadgeCheck, ChevronDown, ChevronUp, LucideIcon, Search, Loader2 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { createPortal } from 'react-dom'
+import { SHOW_INVENTION_MOTIVE } from '@/lib/features'
 import { Invention } from './InventionCard'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -376,11 +377,11 @@ export function InventionDetailModal({ invention: baseInvention, onClose }: Inve
                                                 </div>
                                             )}
                                             <div className="space-y-4">
-                                                <ExpandableSection
+                                                {SHOW_INVENTION_MOTIVE && <ExpandableSection
                                                     title="발명 동기"
                                                     content={invention.invention_motive}
                                                     defaultOpen={true}
-                                                />
+                                                />}
                                                 <ExpandableSection
                                                     title="발명 요약"
                                                     content={invention.detailed_summary}
@@ -403,7 +404,7 @@ export function InventionDetailModal({ invention: baseInvention, onClose }: Inve
                                                 />
                                             </div>
 
-                                            {detailState === 'done' && !invention.invention_motive && !invention.detailed_summary && !invention.problem && !invention.solution && !invention.next_step && (
+                                            {detailState === 'done' && !(SHOW_INVENTION_MOTIVE && invention.invention_motive) && !invention.detailed_summary && !invention.problem && !invention.solution && !invention.next_step && (
                                                 <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant font-medium">
                                                     <BadgeCheck className="w-12 h-12 mb-4 opacity-30" />
                                                     <p>상세 설명 정보가 등록되지 않은 발명품입니다.</p>

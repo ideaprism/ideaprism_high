@@ -1,4 +1,5 @@
 import { getSchoolSession } from '@/lib/school-session'
+import { SHOW_INVENTION_MOTIVE } from '@/lib/features'
 import { getInventionById } from '@/utils/supabase/queries'
 import { Button } from '@/components/ui/Button'
 import { BadgeCheck, ArrowLeft, ExternalLink } from 'lucide-react'
@@ -128,7 +129,7 @@ export default async function InventionDetailPage({
                             )}
 
                             <div className="prose prose-lg max-w-none text-on-surface-variant">
-                                {invention.invention_motive && (
+                                {SHOW_INVENTION_MOTIVE && invention.invention_motive && (
                                     <div className="mb-6">
                                         <h3 className="text-lg font-bold text-on-surface mb-2">발명 동기</h3>
                                         <p className="whitespace-pre-line text-base">{invention.invention_motive}</p>

@@ -57,6 +57,7 @@
 - 검색 버튼 옆과 결과 건수 옆의 **모든 데이터 보기**는 검색어·학년·문제 유형·SCAMPER·연도 범위를 초기화하고 로그인한 학교의 전체 자료를 표시합니다. 학교 간 권한은 그대로 적용됩니다.
 - 학년 구분은 원본 `grade_year`의 1·2·3학년이며, 연도는 원본 `award_year`(2015~2026)를 사용합니다. SCAMPER 아래 두 손잡이로 수상 연도 범위를 양 끝 포함하여 조절하며, 다른 필터와 함께 적용됩니다. 학교별 연도 범위는 검색어와 관계없이 유지됩니다.
 - 실제 집계가 없는 고정 인기검색어 목록은 홈·검색 화면에서 제거했습니다.
+- 발명동기는 원본 데이터와 상세 API 필드를 유지하되 화면에서는 숨깁니다. `src/lib/features.ts`의 `SHOW_INVENTION_MOTIVE=false`로 상세 팝업·개별 상세 페이지의 표시를 끕니다. 검색결과 카드의 설명 문단도 표시하지 않습니다.
 - 사진은 `/api/inventions/[id]/image`에서 학교 권한 확인 후 원본 바이트를 전달합니다. JSON과 사진은 공개 `public/` 밖에 보관하며 응답은 `private, no-store`입니다.
 - 특허 검색은 상세 API의 `keyword`, `search_terms.problem/method/effect`, `ipc`로 편집 가능한 검색식을 구성합니다. `ipc_secondary`는 참고 정보로 표시합니다. 패키지에 없는 Simple/Expert OPSME 자료나 IPC 설명은 생성하지 않습니다. 외부 KIPRIS 실제 검색은 `KIPRIS_SERVICE_KEY`와 네트워크가 필요합니다.
 

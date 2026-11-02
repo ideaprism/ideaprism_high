@@ -96,10 +96,15 @@ try {
   await page.getByText(`제${detail.round}회 ${detail.competition_name}`, { exact: true }).waitFor()
   assert.ok((await page.locator('tr').filter({ hasText: '상격' }).locator('td').textContent()).includes(detail.award))
   await page.getByRole('button', { name: '상세 설명', exact: true }).click()
-  await page.getByRole('button', { name: '발명 동기', exact: false }).waitFor()
-  checks.push('card descriptions stay hidden; student, competition, award and motive remain in detail')
+  await page.getByRole('button', { name: '발명 요약', exact: true }).waitFor()
+  assert.ok(detail.invention_motive, 'original motive stays in authenticated detail data')
+  assert.equal(await page.getByRole('button', { name: '발명 동기', exact: false }).count(), 0)
+  await page.goto(base + '/inventions/' + detail.id)
+  await page.getByRole('heading', { name: detail.original_title, exact: true }).waitFor()
+  assert.equal(await page.getByRole('heading', { name: '발명 동기', exact: true }).count(), 0)
+  checks.push('motive is hidden in modal and standalone detail; original API data is preserved')
   assert.deepEqual(errors, [])
   const report = { base, checks, total: all.totalCount, yearBounds: all.yearBounds, mobileOverflow: false, consoleErrors: errors }
-  writeFileSync(deployed ? 'docs/deployment-browser-validation.json' : 'docs/search-controls-validation.json', JSON.stringify(report, null, 2) + '\n')
+  writeFileSync(process.env.SEARCH_VERIFY_REPORT_PATH || (deployed ? 'docs/deployment-browser-validation.json' : 'docs/search-controls-validation.json'), JSON.stringify(report, null, 2) + '\n')
   console.log(JSON.stringify(report, null, 2))
 } finally { await browser.close() }
