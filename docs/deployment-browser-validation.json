@@ -1,0 +1,18 @@
+{
+  "base": "https://ideaprism-high.vercel.app",
+  "checks": [
+    "actual student grade and inclusive award-year range filter together",
+    "year handle supports mouse drag and keyboard adjustment",
+    "top all-data button clears keyword, grade, tags, year range and URL filters",
+    "result-count all-data button restores all school records from zero results",
+    "all-data also resets SCAMPER selection",
+    "card descriptions stay hidden; student, competition, award and motive remain in detail"
+  ],
+  "total": 167,
+  "yearBounds": {
+    "min": 2015,
+    "max": 2026
+  },
+  "mobileOverflow": false,
+  "consoleErrors": []
+}

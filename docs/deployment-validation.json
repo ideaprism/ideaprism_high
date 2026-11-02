@@ -1,0 +1,40 @@
+{
+  "base": "https://ideaprism-high.vercel.app",
+  "schools": [
+    {
+      "school": "mirae",
+      "login": 200,
+      "visibleCount": 167,
+      "keywordCount": 5
+    },
+    {
+      "school": "boseong",
+      "login": 200,
+      "visibleCount": 82,
+      "keywordCount": 0
+    },
+    {
+      "school": "samil",
+      "login": 200,
+      "visibleCount": 70,
+      "keywordCount": 0
+    },
+    {
+      "school": "daegwang",
+      "login": 200,
+      "visibleCount": 5,
+      "keywordCount": 0
+    }
+  ],
+  "checks": [
+    "anonymous data requests and direct private-file paths are denied",
+    "4x4 school detail/photo matrix; student and award fields; original photo hashes",
+    "excluded invention and missing-photo handling preserved",
+    "Neon account issuance; duplicate rollback; code change persists; old code/session revoked; disable denies login"
+  ],
+  "patent": {
+    "status": 200,
+    "success": true,
+    "totalCount": 24142
+  }
+}

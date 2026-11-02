@@ -6,7 +6,9 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 config({ path: '.env.local', quiet: true })
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_DIR || 'playwright')
-const base = 'http://127.0.0.1:3102'
+const base = process.env.SEARCH_VERIFY_BASE_URL || 'http://127.0.0.1:3102'
+if (!['http://127.0.0.1:3102', 'https://ideaprism-high.vercel.app'].includes(base)) throw Error('Unapproved verification destination')
+const deployed = base.startsWith('https:')
 const db = new DatabaseSync(process.env.LOCAL_AUTH_DB_PATH || 'private/accounts.sqlite', { readOnly: true })
 const account = db.prepare("SELECT c.code FROM access_codes c JOIN partner_organizations o ON o.id=c.organization_id WHERE o.school_id='mirae' AND c.is_active=1 AND o.is_active=1 LIMIT 1").get()
 db.close()
@@ -79,13 +81,25 @@ try {
   await page.getByRole('button', { name: /^S\(대체\)/ }).click()
   await showAll(0)
   checks.push('all-data also resets SCAMPER selection')
-  mkdirSync('private/search-controls-validation', { recursive: true })
-  await page.screenshot({ path: 'private/search-controls-validation/desktop.png', fullPage: true })
+  const screenshotDir = deployed ? 'private/deployment-browser-validation' : 'private/search-controls-validation'
+  mkdirSync(screenshotDir, { recursive: true })
+  await page.screenshot({ path: screenshotDir + '/desktop.png', fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.screenshot({ path: 'private/search-controls-validation/mobile.png', fullPage: true })
+  await page.screenshot({ path: screenshotDir + '/mobile.png', fullPage: true })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  const cards = page.getByRole('button').filter({ has: page.getByRole('heading', { level: 3 }) })
+  assert.equal(await cards.locator('p').count(), 0)
+  const detailResponse = page.waitForResponse(r => /\/api\/inventions\/[^/]+$/.test(new URL(r.url()).pathname))
+  await cards.first().click()
+  const detail = await (await detailResponse).json()
+  await page.getByText(detail.student_name, { exact: true }).waitFor()
+  await page.getByText(`제${detail.round}회 ${detail.competition_name}`, { exact: true }).waitFor()
+  assert.ok((await page.locator('tr').filter({ hasText: '상격' }).locator('td').textContent()).includes(detail.award))
+  await page.getByRole('button', { name: '상세 설명', exact: true }).click()
+  await page.getByRole('button', { name: '발명 동기', exact: false }).waitFor()
+  checks.push('card descriptions stay hidden; student, competition, award and motive remain in detail')
   assert.deepEqual(errors, [])
-  const report = { checks, total: all.totalCount, yearBounds: all.yearBounds, mobileOverflow: false, consoleErrors: errors }
-  writeFileSync('docs/search-controls-validation.json', JSON.stringify(report, null, 2) + '\n')
+  const report = { base, checks, total: all.totalCount, yearBounds: all.yearBounds, mobileOverflow: false, consoleErrors: errors }
+  writeFileSync(deployed ? 'docs/deployment-browser-validation.json' : 'docs/search-controls-validation.json', JSON.stringify(report, null, 2) + '\n')
   console.log(JSON.stringify(report, null, 2))
 } finally { await browser.close() }
