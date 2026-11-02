@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/school-access.test.ts"
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -19,11 +19,11 @@
     "dotenv": "^17.2.3",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.562.0",
-    "next": "15.5.14",
+    "next": "15.5.28",
     "openai": "^6.33.0",
     "papaparse": "^5.5.3",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.2.9",
+    "react-dom": "19.2.9",
     "recharts": "^3.8.1",
     "tailwind-merge": "^3.4.0",
     "tsx": "^4.21.0"
@@ -34,8 +34,18 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.1",
+    "eslint-config-next": "15.5.28",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.24"
+    }
+  },
+  "allowScripts": {
+    "esbuild@0.27.2": true,
+    "sharp@0.35.5": true,
+    "unrs-resolver@1.11.1": true
   }
 }

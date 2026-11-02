@@ -160,40 +160,13 @@ export function useFilters(options: UseFiltersOptions = {}): UseFiltersReturn {
     // Facet 집계 로직 (순수 함수)
     // ========================================
 
+    // 버튼 숫자 = "이 버튼을 누르면 남는 건수".
+    // 각 그룹의 숫자는 '다른 그룹' 필터만 적용한 결과로 센다 (faceted count).
+    // 예: 학교급 '중등'을 고르면 문제유형·SCAMPER 숫자는 중등 안에서의 건수로 바뀌고,
+    //     학교급 버튼 숫자는 그대로 유지돼 다른 학교급으로 바꿔 볼 수 있다.
     const calculateFacets = useCallback((inventions: InventionRaw[]): FacetCounts => {
-        const gradeCounts: Record<number, number> = {}
-        const problemCounts: Record<string, number> = {}
-        const scamperCounts: Record<string, number> = {}
-
-        inventions.forEach(inv => {
-            // Grade 카운트
-            if (inv.grade_id) {
-                gradeCounts[inv.grade_id] = (gradeCounts[inv.grade_id] || 0) + 1
-            }
-
-            // Problem Tag 카운트
-            if (inv.problem_tag) {
-                inv.problem_tag.split(',').forEach(t => {
-                    const tag = t.trim()
-                    if (tag) problemCounts[tag] = (problemCounts[tag] || 0) + 1
-                })
-            }
-
-            // SCAMPER 카운트
-            if (inv.scamper) {
-                inv.scamper.split(',').forEach(t => {
-                    const tag = t.trim()
-                    if (tag) scamperCounts[tag] = (scamperCounts[tag] || 0) + 1
-                })
-            }
-        })
-
-        return {
-            grades: gradeCounts,
-            problems: problemCounts,
-            scampers: scamperCounts
-        }
-    }, [])
+        return calculateFacetCounts(inventions, filters)
+    }, [filters])
 
     return {
         filters,
@@ -246,31 +219,41 @@ export function filterInventionsByFilters(
     })
 }
 
-/** Facet 카운트 계산 유틸리티 */
-export function calculateFacetCounts(inventions: InventionRaw[]): FacetCounts {
+/** Facet 카운트 계산 유틸리티
+ *
+ * filters를 주면 faceted count: 각 그룹의 숫자는 '자기 그룹을 뺀 나머지 필터'를 적용한 결과로 센다.
+ * filters를 생략하면 전체 결과 기준 단순 집계.
+ */
+export function calculateFacetCounts(inventions: InventionRaw[], filters?: Filters): FacetCounts {
+    const f: Filters = filters ?? { gradeIds: [], problemTags: [], scamperTags: [] }
+
+    const baseForGrades = filterInventionsByFilters(inventions, { ...f, gradeIds: [] })
+    const baseForProblems = filterInventionsByFilters(inventions, { ...f, problemTags: [] })
+    const baseForScampers = filterInventionsByFilters(inventions, { ...f, scamperTags: [] })
+
     const gradeCounts: Record<number, number> = {}
-    const problemCounts: Record<string, number> = {}
-    const scamperCounts: Record<string, number> = {}
-
-    inventions.forEach(inv => {
-        if (inv.grade_id) {
-            gradeCounts[inv.grade_id] = (gradeCounts[inv.grade_id] || 0) + 1
-        }
-
-        if (inv.problem_tag) {
-            inv.problem_tag.split(',').forEach(t => {
-                const tag = t.trim()
-                if (tag) problemCounts[tag] = (problemCounts[tag] || 0) + 1
-            })
-        }
-
-        if (inv.scamper) {
-            inv.scamper.split(',').forEach(t => {
-                const tag = t.trim()
-                if (tag) scamperCounts[tag] = (scamperCounts[tag] || 0) + 1
-            })
-        }
+    baseForGrades.forEach(inv => {
+        if (inv.grade_id) gradeCounts[inv.grade_id] = (gradeCounts[inv.grade_id] || 0) + 1
     })
 
-    return { grades: gradeCounts, problems: problemCounts, scampers: scamperCounts }
+    return {
+        grades: gradeCounts,
+        problems: countTags(baseForProblems, 'problem_tag'),
+        scampers: countTags(baseForScampers, 'scamper'),
+        // '전체'는 선택된 것 전체 (학교·문제유형·SCAMPER 모두 같은 숫자 = 현재 결과 수)
+        total: filterInventionsByFilters(inventions, f).length,
+    }
+}
+
+function countTags(inventions: InventionRaw[], field: 'problem_tag' | 'scamper'): Record<string, number> {
+    const counts: Record<string, number> = {}
+    inventions.forEach(inv => {
+        const raw = inv[field]
+        if (!raw) return
+        // 한 발명에 같은 태그가 두 번 적혀 있어도 1건으로 셈
+        new Set(raw.split(',').map(t => t.trim()).filter(Boolean)).forEach(tag => {
+            counts[tag] = (counts[tag] || 0) + 1
+        })
+    })
+    return counts
 }

@@ -1,56 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin-route';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SECRET_KEY;
+import { NextRequest } from 'next/server'
+import { requireAdmin } from '@/lib/admin-route'
+import { adminDb, UUID_PATTERN, CODE_PATTERN } from '@/lib/admin-db'
+import { adminError, adminJson } from '@/lib/admin-response'
 
 export async function POST(request: NextRequest) {
-  const unauthorized = await requireAdmin(request);
-  if (unauthorized) return unauthorized;
-
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    return NextResponse.json({ error: 'Missing server configuration' }, { status: 500 });
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+  const body: unknown = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object' || !('codeId' in body) || typeof body.codeId !== 'string' || !UUID_PATTERN.test(body.codeId)) {
+    return adminJson({ error: '올바른 코드 ID가 필요합니다.' }, 400)
   }
-
+  const patch: { code?: string; is_active?: boolean } = {}
+  if ('newCode' in body) {
+    if (typeof body.newCode !== 'string' || !CODE_PATTERN.test(body.newCode.trim().toUpperCase())) return adminJson({ error: '코드는 영문·숫자·_·- 4~128자로 입력해 주세요.' }, 400)
+    patch.code = body.newCode.trim().toUpperCase()
+  }
+  if ('isActive' in body) {
+    if (typeof body.isActive !== 'boolean') return adminJson({ error: '활성 상태를 확인해 주세요.' }, 400)
+    patch.is_active = body.isActive
+  }
+  if (!Object.keys(patch).length) return adminJson({ error: '변경할 값이 없습니다.' }, 400)
   try {
-    const { codeId, newCode } = (await request.json()) as { codeId?: string; newCode?: string };
-    if (!codeId || !newCode) {
-      return NextResponse.json({ error: 'Code ID and new code are required' }, { status: 400 });
-    }
-
-    const normalizedCode = newCode.toUpperCase().trim();
-    const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/access_codes?code=eq.${normalizedCode}`, {
-      headers: {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-      },
-    });
-    const existing = (await checkRes.json()) as Array<{ id: string }>;
-
-    if (existing.length > 0 && existing[0].id !== codeId) {
-      return NextResponse.json({ error: 'Code already exists' }, { status: 409 });
-    }
-
-    const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/access_codes?id=eq.${codeId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify({ code: normalizedCode }),
-    });
-
-    if (!updateRes.ok) {
-      const errorData = await updateRes.json().catch(() => ({}));
-      throw new Error(errorData.message || errorData.error || 'Update failed');
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('[Admin Code Update Error]:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
-  }
+    const rows = await adminDb<{ id: string }[]>('access_codes', { id: 'eq.' + body.codeId, select: 'id' }, { method: 'PATCH', body: JSON.stringify(patch) })
+    if (!rows.length) return adminJson({ error: '코드를 찾을 수 없습니다.' }, 404)
+    return adminJson({ success: true })
+  } catch (error) { return adminError(error) }
 }
-

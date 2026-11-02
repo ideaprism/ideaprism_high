@@ -4,12 +4,13 @@ export const SCHOOL_SESSION_COOKIE = 'ideaprism_school_session'
 const SESSION_TTL_SECONDS = 60 * 60 * 12
 
 interface SchoolTokenPayload {
+  aud: 'ideaprism-high'
   slug: SchoolSlug
   exp: number
 }
 
 function getSecret(): string | null {
-  return process.env.SCHOOL_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET || null
+  return process.env.SCHOOL_SESSION_SECRET || null
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -54,6 +55,7 @@ export async function createSchoolSessionToken(slug: SchoolSlug): Promise<string
   }
 
   const payload: SchoolTokenPayload = {
+    aud: 'ideaprism-high',
     slug,
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
   }
@@ -67,18 +69,21 @@ export async function verifySchoolSessionToken(token: string): Promise<SchoolSlu
     const secret = getSecret()
     if (!secret) return null
 
-    const [payloadEncoded, signature] = token.split('.')
-    if (!payloadEncoded || !signature) return null
-
-    const expected = await sign(payloadEncoded, secret)
-    if (expected !== signature) return null
+    if (token.length > 1024) return null
+    const segments = token.split('.')
+    if (segments.length !== 2 || segments.some((segment) => !/^[A-Za-z0-9_-]+$/.test(segment))) return null
+    const [payloadEncoded, signature] = segments
+    const key = await importHmacKey(secret)
+    const valid = await crypto.subtle.verify('HMAC', key,
+      new Uint8Array(fromBase64Url(signature)), new TextEncoder().encode(payloadEncoded))
+    if (!valid) return null
 
     const payload = JSON.parse(
       new TextDecoder().decode(fromBase64Url(payloadEncoded))
     ) as SchoolTokenPayload
 
-    if (!payload?.slug || !isSchoolSlug(payload.slug)) return null
-    if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null
+    if (payload?.aud !== 'ideaprism-high' || !isSchoolSlug(payload.slug)) return null
+    if (!Number.isSafeInteger(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) return null
     return payload.slug
   } catch {
     return null

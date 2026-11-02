@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
 import { GuideModal } from '@/components/modals/GuideModal'
 import { HomeSearchSection } from './HomeSearchSection'
 import { GuideStep } from '@/constants/home'
@@ -11,9 +10,8 @@ import { SchoolCrest } from '@/components/school/SchoolCrest'
 export function HomeClientWrapper({ children }: { children: React.ReactNode }) {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false)
   const [guideModalStep, setGuideModalStep] = useState<GuideStep>('problem')
-  const { organization } = useAuth()
   const school = useSchool()
-  const isGuestMode = organization?.orgType === 'guest'
+  const isGuestMode = false
 
   const openGuide = (step: GuideStep = 'problem') => {
     setGuideModalStep(step)

@@ -43,7 +43,7 @@ interface FilterRowProps {
     items: LookupItem[]
     selectedItems: (number | string)[]
     counts: Record<string | number, number>
-    onToggle: (val: any) => void
+    onToggle: (item: LookupItem) => void
     onClear: () => void
     itemKeyType: 'id' | 'name'
     totalCount: number
@@ -51,6 +51,8 @@ interface FilterRowProps {
     isScamper?: boolean
     isProblem?: boolean
     getLabel?: (name: string) => string
+    /** 제목 옆 작은 안내 문구 */
+    note?: string
 }
 
 function FilterRow({
@@ -65,11 +67,15 @@ function FilterRow({
     getColorClass,
     isScamper = false,
     isProblem = false,
-    getLabel
+    getLabel,
+    note
 }: FilterRowProps) {
     return (
         <div className="flex flex-col gap-2">
-            <h4 className="font-bold text-sm text-on-surface">{title}</h4>
+            <h4 className="font-bold text-sm text-on-surface">
+                {title}
+                {note && <span className="ml-2 text-xs font-normal text-slate-400">{note}</span>}
+            </h4>
             <div className="flex flex-wrap gap-2 items-center">
                 <button
                     onClick={onClear}
@@ -111,7 +117,7 @@ function FilterRow({
                     return (
                         <button
                             key={item.id}
-                            onClick={() => onToggle(key)}
+                            onClick={() => onToggle(item)}
                             className={cn(
                                 "px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5",
                                 !isScamper && "border",
@@ -169,21 +175,22 @@ export function SearchFilters({
                             items={searchData.grades}
                             selectedItems={filters.gradeIds}
                             counts={facetCounts.grades}
-                            onToggle={onToggleGrade}
+                            onToggle={(item) => onToggleGrade(item.id)}
                             onClear={onClearGrades}
                             itemKeyType="id"
-                            totalCount={searchData.totalCount}
+                            totalCount={facetCounts.total}
                         />
                         <FilterRow
                             title="해결하려는 문제 유형"
                             items={sortedProblemTags}
                             selectedItems={filters.problemTags}
                             counts={facetCounts.problems}
-                            onToggle={onToggleProblem}
+                            onToggle={(item) => onToggleProblem(item.name)}
                             onClear={onClearProblems}
                             itemKeyType="name"
-                            totalCount={searchData.totalCount}
+                            totalCount={facetCounts.total}
                             getColorClass={getProblemColorClass}
+                            note="한 발명에 여러 유형이 있으면 각각 세어져, 합계가 전체보다 클 수 있어요"
                             isProblem={true}
                         />
                         <FilterRow
@@ -191,11 +198,12 @@ export function SearchFilters({
                             items={sortedScamperTags}
                             selectedItems={filters.scamperTags}
                             counts={facetCounts.scampers}
-                            onToggle={onToggleScamper}
+                            onToggle={(item) => onToggleScamper(item.name)}
                             onClear={onClearScampers}
                             itemKeyType="name"
-                            totalCount={searchData.totalCount}
+                            totalCount={facetCounts.total}
                             getColorClass={getScamperColorClass}
+                            note="한 발명에 여러 기법이 쓰이면 각각 세어져, 합계가 전체보다 클 수 있어요"
                             isScamper={true}
                             getLabel={getScamperLabel}
                         />

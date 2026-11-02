@@ -9,6 +9,8 @@
  * - E (Effect): 효과
  */
 
+import { quoteFormulaKeyword } from '@/lib/kipris-query';
+
 // OPSME 카테고리 정의
 export const OPSME_CATEGORIES = {
     O: { code: 'O', name: '발명대상', label: 'Object', color: 'bg-blue-500' },
@@ -139,7 +141,7 @@ export function generateOPSMESearchFormula(
 
     // 각 카테고리별 키워드 추가
     for (const category of categoriesToInclude) {
-        const categoryKeywords = keywords[category];
+        const categoryKeywords = keywords[category]?.map(quoteFormulaKeyword).filter(Boolean);
         if (!categoryKeywords || categoryKeywords.length === 0) continue;
 
         if (categoryKeywords.length === 1) {
@@ -202,7 +204,7 @@ export function templateFieldsToKeywords(fields: OPSMETemplateFields): OPSMEKeyw
 /**
  * 템플릿 필드에서 직접 검색식 생성
  */
-export function templateFieldsToFormula(fields: OPSMETemplateFields): string {
+export function templateFieldsToFormula(fields: OPSMETemplateFields, includeCategories?: OPSMECategory[]): string {
     const keywords = templateFieldsToKeywords(fields);
-    return generateOPSMESearchFormula(fields.ipc, keywords);
+    return generateOPSMESearchFormula(fields.ipc, keywords, { includeCategories });
 }

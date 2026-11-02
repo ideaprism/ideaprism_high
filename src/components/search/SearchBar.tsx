@@ -27,7 +27,7 @@ export function SearchBar({
         <div className="py-8 bg-transparent">
             <div className="w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24">
                 <div className="max-w-4xl mx-auto w-full">
-                    <div className="relative w-full h-[52px] bg-white border-2 border-primary/10 hover:border-primary/30 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 rounded-2xl transition-all duration-300 shadow-sm hover:shadow-md">
+                    <div data-search-bar className="relative w-full h-[52px] bg-white border-2 border-primary/10 hover:border-primary/30 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 rounded-2xl transition-all duration-300 shadow-sm hover:shadow-md">
                         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
                             <Search className="w-5 h-5 text-primary/60" />
                         </div>

@@ -43,6 +43,10 @@ export interface SearchData {
     problemTags: LookupItem[]
     scamperTags: LookupItem[]
     totalCount: number
+    /** 일부 조회가 실패했지만 나머지 결과를 표시하는 경우 */
+    partialResults?: boolean
+    /** 이 응답에서 반환할 수 있는 후보 수 상한 */
+    maxResults?: number
 }
 
 // ============================================
@@ -83,6 +87,8 @@ export interface FacetCounts {
     grades: Record<number, number>
     problems: Record<string, number>
     scampers: Record<string, number>
+    /** 모든 그룹 '전체' 버튼 숫자 = 지금 선택된 필터를 모두 적용한 결과 수 */
+    total: number
 }
 
 /** Facet 카운트 (ID 기반) */

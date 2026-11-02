@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
+import Link from 'next/link'
 
 export function SchoolGate() {
   const [code, setCode] = useState('')
@@ -36,7 +37,7 @@ export function SchoolGate() {
   }
 
   return (
-    <main className="fixed inset-0 z-[80] grid min-h-screen bg-[#efe6d6] text-[#1c1915] md:grid-cols-[minmax(280px,42%)_1fr]">
+    <main className="fixed inset-0 z-[80] grid min-h-screen overflow-y-auto bg-[#efe6d6] text-[#1c1915] md:grid-cols-[minmax(280px,42%)_1fr]">
       <section className="relative hidden overflow-hidden bg-[#1c1915] text-[#f3ecdf] md:flex md:flex-col md:justify-between md:p-12">
         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, #8c6a3a 0, transparent 42%), radial-gradient(circle at 80% 80%, #3d4a38 0, transparent 40%)' }} />
         <p className="relative text-xs font-semibold tracking-[0.42em] text-[#d8c4a0]">IDEAPRISM HIGH</p>
@@ -72,6 +73,7 @@ export function SchoolGate() {
           <input
             id="school-code"
             name="code"
+            maxLength={128}
             value={code}
             onChange={(event) => setCode(event.target.value)}
             autoFocus
@@ -94,6 +96,11 @@ export function SchoolGate() {
           >
             {isSubmitting ? '확인 중' : '들어가기'}
           </button>
+          <div className="mt-8 flex gap-5 text-xs text-[#5c5348]">
+            <Link href="/privacy" className="underline">개인정보처리방침</Link>
+            <Link href="/terms" className="underline">이용약관</Link>
+            <Link href="/admin-login" className="ml-auto underline">관리자</Link>
+          </div>
         </form>
       </section>
     </main>

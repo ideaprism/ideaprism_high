@@ -5,18 +5,14 @@ import {
     Key, 
     Search, 
     Plus, 
-    Filter, 
-    MoreHorizontal, 
-    ExternalLink, 
     Copy, 
     Check, 
-    AlertCircle,
     Archive,
     History,
     RefreshCw,
     TrendingUp
 } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client'
+
 import { Database } from '@/types/supabase'
 import { DirectIssueModal } from '@/components/admin/DirectIssueModal'
 
@@ -35,7 +31,8 @@ export default function CodesPage() {
     const [editingCodeId, setEditingCodeId] = useState<string | null>(null)
     const [editedCode, setEditedCode] = useState('')
 
-    const supabase = createClient()
+    const [loadError, setLoadError] = useState('')
+    const [notice, setNotice] = useState('')
 
     useEffect(() => {
         fetchCodes()
@@ -44,15 +41,13 @@ export default function CodesPage() {
     const fetchCodes = async () => {
         setIsLoading(true)
         try {
-            const { data, error } = await supabase
-                .from('access_codes')
-                .select('*, partner_organizations(name)')
-                .order('created_at', { ascending: false })
-
-            if (error) throw error
-            setCodes(data as AccessCodeWithOrg[])
+            setLoadError('')
+            const response = await fetch('/api/admin/codes')
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || '코드 조회에 실패했습니다.')
+            setCodes(result.data as AccessCodeWithOrg[])
         } catch (error) {
-            console.error('Error fetching codes:', error)
+            setLoadError(error instanceof Error ? error.message : '코드 조회에 실패했습니다.')
         } finally {
             setIsLoading(false)
         }
@@ -60,7 +55,7 @@ export default function CodesPage() {
 
     const updateCodeValue = async (id: string) => {
         if (!editedCode || editedCode.length < 4) {
-            alert('코드는 최소 4자 이상이어야 합니다.')
+            setLoadError('코드는 최소 4자 이상이어야 합니다.')
             return
         }
 
@@ -73,11 +68,11 @@ export default function CodesPage() {
             const result = await res.json()
             if (result.error) throw new Error(result.error)
 
-            alert('액세스 코드가 변경되었습니다.')
+            setNotice('기관 코드가 변경되었습니다.')
             setEditingCodeId(null)
             fetchCodes()
-        } catch (error: any) {
-            alert(error.message || '코드 변경에 실패했습니다.')
+        } catch (error) {
+            setLoadError(error instanceof Error ? error.message : '코드 변경에 실패했습니다.')
         }
     }
 
@@ -89,16 +84,13 @@ export default function CodesPage() {
 
     const toggleCodeActive = async (id: string, currentStatus: boolean | null) => {
         try {
-            const { error } = await supabase
-                .from('access_codes')
-                .update({ is_active: !currentStatus })
-                .eq('id', id)
-            
-            if (error) throw error
+            const response = await fetch('/api/admin/codes/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codeId: id, isActive: !currentStatus }) })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || '상태 변경 실패')
             fetchCodes()
         } catch (error) {
             console.error('Error toggling code status:', error)
-            alert('상태 변경에 실패했습니다.')
+            setLoadError('상태 변경에 실패했습니다.')
         }
     }
 
@@ -115,7 +107,7 @@ export default function CodesPage() {
                         <Key className="w-10 h-10 text-primary" />
                         발급된 코드 관리
                     </h1>
-                    <p className="text-slate-500 font-bold text-lg">기관별 액세스 코드 현황 및 사용량을 모니터링합니다.</p>
+                    <p className="text-slate-500 font-bold text-lg">공용 서비스의 기관 코드입니다. High 네 학교의 진입 코드와는 별개입니다.</p>
                 </div>
                 
                 <button 
@@ -135,6 +127,9 @@ export default function CodesPage() {
                     setIsModalOpen(false)
                 }}
             />
+
+            {loadError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-700">{loadError}</p>}
+            {notice && <p role="status" className="rounded-xl bg-green-50 p-4 text-green-800">{notice}</p>}
 
             {/* Toolbar */}
             <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -206,6 +201,8 @@ export default function CodesPage() {
                                     <div className="flex flex-col gap-3 animate-in slide-in-from-top-2">
                                         <input 
                                             type="text" 
+                                            aria-label="새 기관 코드"
+                                            maxLength={128}
                                             value={editedCode}
                                             onChange={(e) => setEditedCode(e.target.value.toUpperCase())}
                                             className="w-full px-4 py-2 bg-white border-2 border-primary rounded-xl font-black text-slate-900 outline-none tracking-widest"
@@ -228,9 +225,10 @@ export default function CodesPage() {
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-between">
-                                        <span className="text-2xl font-black text-slate-900 tracking-[0.2em]">{item.code}</span>
+                                        <span className="min-w-0 break-all text-base md:text-xl font-black text-slate-900 tracking-wider">{item.code}</span>
                                         <button 
                                             onClick={() => copyToClipboard(item.code, item.id)}
+                                            aria-label="코드 복사"
                                             className="p-2 hover:bg-white rounded-lg transition-all text-slate-400 hover:text-primary border border-transparent hover:border-slate-100"
                                         >
                                             {copiedId === item.id ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
@@ -251,7 +249,7 @@ export default function CodesPage() {
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Max Limit</div>
                                     <div className="text-lg font-black text-slate-900">
-                                        {item.max_usage || 'Unlimited'}
+                                        {item.max_usage ?? 'Unlimited'}
                                     </div>
                                 </div>
                             </div>
@@ -263,10 +261,7 @@ export default function CodesPage() {
                                     className={`flex items-center gap-2 text-xs font-black transition-colors ${item.is_active ? 'text-slate-400 hover:text-red-500' : 'text-primary hover:text-primary/80'}`}
                                 >
                                     {item.is_active ? <Archive className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-                                    {item.is_active ? 'Deactivate Code' : 'Reactive Code'}
-                                </button>
-                                <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
-                                    <ExternalLink className="w-4 h-4" />
+                                    {item.is_active ? '비활성화' : '활성화'}
                                 </button>
                             </div>
                         </div>

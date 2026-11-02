@@ -1,8 +1,31 @@
+import { getSchoolSession } from '@/lib/school-session'
 import { getInventionById } from '@/utils/supabase/queries'
 import { Button } from '@/components/ui/Button'
 import { BadgeCheck, ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { cache } from 'react'
+import type { Metadata } from 'next'
+
+// generateMetadata와 페이지 본문이 같은 요청에서 DB를 두 번 조회하지 않도록 캐시
+const getInvention = cache(async (id: string) => {
+    if (!await getSchoolSession()) redirect('/')
+    return getInventionById(id)
+})
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ id: string }>
+}): Promise<Metadata> {
+    const { id } = await params
+    const invention = await getInvention(id)
+    if (!invention) return { title: '발명품을 찾을 수 없습니다' }
+    return {
+        title: invention.simple_title,
+        description: invention.simple_summary ?? undefined,
+    }
+}
 
 export default async function InventionDetailPage({
     params,
@@ -10,7 +33,7 @@ export default async function InventionDetailPage({
     params: Promise<{ id: string }>
 }) {
     const { id } = await params
-    const invention = await getInventionById(id)
+    const invention = await getInvention(id)
 
     if (!invention) {
         notFound()

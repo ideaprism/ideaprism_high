@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { SearchResultGallery } from '@/components/features/SearchResultGallery'
 import { FilterCalculation } from '@/components/features/FilterCalculation'
 import { ViewToggle } from '@/components/features/ViewToggle'
 import { SearchBar, SearchFilters, SearchPagination } from '@/components/search'
 import { useFilters, usePagination, useResetPageOnChange } from '@/hooks'
-import { useAuth } from '@/contexts/AuthContext'
 import { DbWarmingBanner } from '@/components/ui/DbWarmingBanner'
 import { POPULAR_KEYWORDS } from '@/constants/home'
 import type { SearchData } from '@/types/search'
@@ -17,6 +16,7 @@ interface ClientSearchPageProps {
 }
 
 const GUEST_NOTICE = '체험 모드에서는 인기 검색어만 이용 가능합니다.'
+const MAX_AUTO_RETRIES = 2
 
 const EMPTY_SEARCH_DATA: SearchData = {
   allInventions: [],
@@ -32,8 +32,7 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
   const viewMode = (searchParams.get('view') as 'grid' | 'list') || 'grid'
   const initialProblem = searchParams.get('problem') || ''
 
-  const { organization } = useAuth()
-  const isGuest = organization?.orgType === 'guest'
+  const isGuest = false // School access is established by the server session.
   const isPopularKeyword = (value: string) => POPULAR_KEYWORDS.includes(value.trim())
 
   const [inputValue, setInputValue] = useState(initialKeyword)
@@ -46,6 +45,7 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
   const [isWarming, setIsWarming] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
   const [retryTrigger, setRetryTrigger] = useState(0)
+  const retryCountRef = useRef(0)
 
   const {
     filters,
@@ -72,21 +72,28 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
     }
 
     setGuestNotice('')
+    retryCountRef.current = 0
+    setRetryCount(0)
     setSearchKeyword(normalized)
+    setRetryTrigger((previous) => previous + 1)
   }
 
   const handlePopularKeywordClick = (keyword: string) => {
     setInputValue(keyword)
     setGuestNotice('')
+    retryCountRef.current = 0
+    setRetryCount(0)
     setSearchKeyword(keyword)
+    setRetryTrigger((previous) => previous + 1)
   }
 
   const isValidKeyword = inputValue.trim().length >= 2
 
   useEffect(() => {
     const abortController = new AbortController()
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
 
-    if (retryCount === 0) {
+    if (retryCountRef.current === 0) {
       setIsWarming(false)
     }
 
@@ -104,22 +111,24 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
+          if (abortController.signal.aborted) return
 
           if (response.status === 403) {
             setGuestNotice(errorData.message || GUEST_NOTICE)
             setError(null)
             setSearchData(EMPTY_SEARCH_DATA)
             setIsWarming(false)
+            retryCountRef.current = 0
             setRetryCount(0)
             return
           }
 
           if (response.status === 504 || response.status === 502 || errorData.retryable) {
-            if (retryCount < 15) {
+            if (retryCountRef.current < MAX_AUTO_RETRIES) {
               setIsWarming(true)
-              setRetryCount((prev) => prev + 1)
-              setTimeout(() => {
-                setRetryTrigger((prev) => prev + 1)
+              setRetryCount(++retryCountRef.current)
+              retryTimer = setTimeout(() => {
+                if (!abortController.signal.aborted) setRetryTrigger((prev) => prev + 1)
               }, 2000)
               return
             }
@@ -129,27 +138,30 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
         }
 
         const data: SearchData = await response.json()
+        if (abortController.signal.aborted) return
         setSearchData(data)
         setGuestNotice('')
         setIsWarming(false)
+        retryCountRef.current = 0
         setRetryCount(0)
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
+        if (abortController.signal.aborted || (err instanceof Error && err.name === 'AbortError')) return
 
         if (
-          retryCount < 15 &&
+          retryCountRef.current < MAX_AUTO_RETRIES &&
           (err instanceof TypeError || (err instanceof Error && err.message.includes('fetch')))
         ) {
           setIsWarming(true)
-          setRetryCount((prev) => prev + 1)
-          setTimeout(() => {
-            setRetryTrigger((prev) => prev + 1)
+          setRetryCount(++retryCountRef.current)
+          retryTimer = setTimeout(() => {
+            if (!abortController.signal.aborted) setRetryTrigger((prev) => prev + 1)
           }, 2000)
           return
         }
 
         setError(err instanceof Error ? err : new Error('Unknown error'))
         setIsWarming(false)
+        retryCountRef.current = 0
         setRetryCount(0)
       } finally {
         if (!abortController.signal.aborted) {
@@ -159,7 +171,10 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
     }
 
     fetchData()
-    return () => abortController.abort()
+    return () => {
+      abortController.abort()
+      clearTimeout(retryTimer)
+    }
   }, [searchKeyword, retryTrigger, isGuest])
 
   const filteredInventions = useMemo(() => {
@@ -168,7 +183,7 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
   }, [searchData, filterInventions])
 
   const facetCounts = useMemo(() => {
-    if (!searchData) return { grades: {}, problems: {}, scampers: {} }
+    if (!searchData) return calculateFacets([])
     return calculateFacets(searchData.allInventions)
   }, [searchData, calculateFacets])
 
@@ -276,6 +291,17 @@ export function ClientSearchPage({ initialKeyword = '' }: ClientSearchPageProps)
           <div className="text-center py-20 text-red-500 bg-red-50 rounded-2xl border border-red-100">
             오류가 발생했습니다: {error.message}
           </div>
+        )}
+
+        {!isLoading && !error && searchData?.partialResults && (
+          <p role="status" className="mb-4 text-sm text-on-surface-variant">
+            일부 검색 결과를 불러오지 못했습니다. 전체 결과를 보려면 다시 검색해 주세요.
+          </p>
+        )}
+        {!isLoading && !error && searchData?.maxResults && searchData.totalCount >= searchData.maxResults && (
+          <p className="mb-4 text-sm text-on-surface-variant">
+            최대 {searchData.maxResults}건의 검색 결과 안에서 필터가 적용됩니다. 검색어를 더 구체적으로 입력하면 결과를 좁힐 수 있습니다.
+          </p>
         )}
 
         {!error && enrichedInventions.length > 0 && (

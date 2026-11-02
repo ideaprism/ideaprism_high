@@ -10,7 +10,8 @@ import { schoolCssVars } from '@/config/schools'
 import { getSchoolSession } from '@/lib/school-session'
 
 export const metadata: Metadata = {
-  title: 'IdeaPrism High',
+  title: { default: 'IdeaPrism High', template: '%s | IdeaPrism High' },
+  robots: { index: false, follow: false },
   description: '고등학교 전용 학생 발명 검색',
   icons: {
     icon: '/favicon.svg',

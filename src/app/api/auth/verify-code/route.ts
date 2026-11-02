@@ -1,141 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import {
-  ADMIN_SESSION_COOKIE,
-  createAdminSessionToken,
-  isAdminOrgType,
-} from '@/lib/admin-session';
+import { NextRequest } from 'next/server'
+import { adminDb, adminDbConfigured, CODE_COLUMNS, CODE_PATTERN, codeIsUsable, type AdminCode } from '@/lib/admin-db'
+import { ADMIN_SESSION_COOKIE, createAdminSessionToken, isAdminOrgType } from '@/lib/admin-session'
+import { adminError, adminJson } from '@/lib/admin-response'
+import { adminLoginLimiter } from '@/lib/login-rate-limit'
 
-/**
- * Access code verification API
- * POST /api/auth/verify-code
- * Body: { code: string }
- */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { code } = body as { code?: string };
-    const normalizedCode = code?.trim().toUpperCase();
-
-    if (!normalizedCode) {
-      return NextResponse.json(
-        {
-          valid: false,
-          error: 'no_code',
-          message: '인증 코드를 입력해 주세요.',
-        },
-        { status: 400 }
-      );
-    }
-
-    const supabase = await createClient();
-    const { data: codeData, error: codeError } = await supabase
-      .from('access_codes')
-      .select(
-        `
-          *,
-          partner_organizations (
-            id,
-            name,
-            org_type,
-            region,
-            is_active
-          )
-        `
-      )
-      .eq('code', normalizedCode)
-      .single();
-
-    if (codeError || !codeData) {
-      return NextResponse.json(
-        {
-          valid: false,
-          error: 'invalid_code',
-          message: '유효하지 않은 코드입니다. 다시 확인해 주세요.',
-        },
-        { status: 200 }
-      );
-    }
-
-    const org = codeData.partner_organizations;
-    const now = new Date();
-
-    if (org && !org.is_active) {
-      return NextResponse.json({
-        valid: false,
-        error: 'inactive_org',
-        message: '해당 기관은 현재 활성 상태가 아닙니다.',
-      });
-    }
-
-    if (!codeData.is_active) {
-      return NextResponse.json({
-        valid: false,
-        error: 'inactive_code',
-        message: '만료되었거나 비활성화된 코드입니다.',
-      });
-    }
-
-    if (codeData.expires_at && new Date(codeData.expires_at) < now) {
-      return NextResponse.json({
-        valid: false,
-        error: 'expired_code',
-        message: '사용 기한이 만료된 코드입니다.',
-      });
-    }
-
-    if (codeData.max_usage && (codeData.usage_count || 0) >= codeData.max_usage) {
-      return NextResponse.json({
-        valid: false,
-        error: 'limit_exceeded',
-        message: '사용 횟수를 초과한 코드입니다.',
-      });
-    }
-
-    await supabase
-      .from('access_codes')
-      .update({ usage_count: (codeData.usage_count || 0) + 1 })
-      .eq('id', codeData.id);
-
-    const response = NextResponse.json({
-      valid: true,
-      organization: {
-        id: org.id,
-        name: org.name,
-        orgType: org.org_type,
-        region: org.region,
-      },
-      codeLabel: codeData.label,
-    });
-
-    if (isAdminOrgType(org.org_type)) {
-      const adminToken = await createAdminSessionToken({
-        orgId: org.id,
-        orgName: org.name,
-        orgType: org.org_type,
-      });
-
-      response.cookies.set(ADMIN_SESSION_COOKIE, adminToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        maxAge: 60 * 60 * 8,
-      });
-    } else {
-      response.cookies.delete(ADMIN_SESSION_COOKIE);
-    }
-
-    return response;
-  } catch (error) {
-    console.error('[VerifyCode API Error]:', error);
-    return NextResponse.json(
-      {
-        valid: false,
-        error: 'server_error',
-        message: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
-      },
-      { status: 500 }
-    );
+  const body: unknown = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object' || !('code' in body) || typeof body.code !== 'string' ||
+    !CODE_PATTERN.test(body.code.trim().toUpperCase())) return adminJson({ error: '관리자 코드를 확인해 주세요.' }, 400)
+  const origin = request.headers.get('origin')
+  if (origin && origin !== request.nextUrl.origin) return adminJson({ error: 'Forbidden' }, 403)
+  if (!adminDbConfigured()) return adminJson({ error: '관리자 DB 연결 설정이 필요합니다.' }, 503)
+  const client = (request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local').slice(0, 128)
+  const retryAfter = adminLoginLimiter(client)
+  if (retryAfter) {
+    const response = adminJson({ error: '로그인 시도가 많습니다. 잠시 후 다시 시도해 주세요.' }, 429)
+    response.headers.set('Retry-After', String(retryAfter))
+    return response
   }
+  try {
+    const codes = await adminDb<AdminCode[]>('access_codes', { select: CODE_COLUMNS, code: `eq.${body.code.trim().toUpperCase()}`, limit: '1' })
+    const code = codes[0]
+    const org = code?.partner_organizations
+    if (!code || !org || !codeIsUsable(code) || !isAdminOrgType(org.org_type)) {
+      return adminJson({ valid: false, error: '유효한 관리자 코드가 아닙니다.' }, 401)
+    }
+    const token = await createAdminSessionToken({ codeId: code.id, orgId: org.id, orgName: org.name, orgType: org.org_type })
+    // Compare-and-set avoids lost increments or exceeding a finite admission quota.
+    const consumed = await adminDb<{ id: string }[]>('access_codes', {
+      id: `eq.${code.id}`, is_active: 'eq.true', select: 'id',
+      usage_count: code.usage_count === null ? 'is.null' : `eq.${code.usage_count}`,
+      max_usage: code.max_usage === null ? 'is.null' : `eq.${code.max_usage}`,
+      expires_at: code.expires_at === null ? 'is.null' : `eq.${code.expires_at}`,
+    }, { method: 'PATCH', body: JSON.stringify({ usage_count: (code.usage_count ?? 0) + 1 }) })
+    if (consumed.length !== 1) return adminJson({ error: '코드 상태가 바뀌었습니다. 다시 로그인해 주세요.' }, 409)
+    const response = adminJson({ valid: true, organization: { id: org.id, name: org.name, orgType: org.org_type, region: org.region } })
+    response.cookies.set(ADMIN_SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 8 * 60 * 60 })
+    return response
+  } catch (error) { return adminError(error) }
 }

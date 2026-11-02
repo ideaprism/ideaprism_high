@@ -1,95 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/admin-route';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SECRET_KEY;
-
-async function supabaseRest(table: string, body: Record<string, unknown>) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    throw new Error('Missing server configuration');
-  }
-
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: SUPABASE_SERVICE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-      Prefer: 'return=representation',
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message || data.error || JSON.stringify(data));
-  }
-
-  return Array.isArray(data) ? data[0] : data;
-}
+import { randomBytes, randomUUID } from 'node:crypto'
+import { NextRequest } from 'next/server'
+import { requireAdmin } from '@/lib/admin-route'
+import { adminDb, CODE_PATTERN } from '@/lib/admin-db'
+import { adminError, adminJson } from '@/lib/admin-response'
 
 export async function POST(request: NextRequest) {
-  const unauthorized = await requireAdmin(request);
-  if (unauthorized) return unauthorized;
-
+  const denied = await requireAdmin(request)
+  if (denied) return denied
+  const body: unknown = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return adminJson({ error: '입력 내용을 확인해 주세요.' }, 400)
+  const input = body as Record<string, unknown>
+  const limits = { orgName: 200, contactName: 100, contactEmail: 254, contactPhone: 40, customCode: 128 }
+  for (const [key, max] of Object.entries(limits)) {
+    if (input[key] !== undefined && (typeof input[key] !== 'string' || (input[key] as string).length > max)) return adminJson({ error: '입력 형식이나 길이를 확인해 주세요.' }, 400)
+  }
+  const orgName = (input.orgName as string | undefined)?.trim()
+  if (!orgName) return adminJson({ error: '기관명을 입력해 주세요.' }, 400)
+  const code = (input.customCode as string | undefined)?.trim().toUpperCase() || 'PRISM-' + randomBytes(8).toString('hex').toUpperCase()
+  if (!CODE_PATTERN.test(code)) return adminJson({ error: '코드 형식을 확인해 주세요.' }, 400)
+  let createdOrgId: string | undefined
   try {
-    const body = (await request.json()) as {
-      orgName?: string;
-      contactName?: string;
-      contactEmail?: string;
-      contactPhone?: string;
-      customCode?: string;
-    };
-    const { orgName, contactName, contactEmail, contactPhone, customCode } = body;
-
-    if (!orgName) {
-      return NextResponse.json({ error: 'Organization name is required' }, { status: 400 });
-    }
-
-    let org;
-    try {
-      org = await supabaseRest('partner_organizations', {
-        name: orgName,
-        org_type: 'school',
-        contact_name: contactName || null,
-        contact_email: contactEmail || null,
-        contact_phone: contactPhone || null,
-        notes: `[Direct Issuance] ${contactName || ''} / ${contactPhone || ''} / ${contactEmail || ''}`,
-      });
-    } catch {
-      org = await supabaseRest('partner_organizations', {
-        name: orgName,
-        org_type: 'school',
-      });
-    }
-
-    const generatedCode =
-      customCode?.trim() || `PRISM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-
-    const labelInfo = [
-      orgName,
-      contactName ? `담당: ${contactName}` : '',
-      contactPhone ? `연락처: ${contactPhone}` : '',
-      contactEmail ? `이메일: ${contactEmail}` : '',
-    ]
-      .filter(Boolean)
-      .join(' | ');
-
-    const codeData = await supabaseRest('access_codes', {
-      code: generatedCode,
-      organization_id: org.id,
-      label: labelInfo,
-      is_active: true,
-      max_usage: null,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: { org, code: codeData },
-    });
+    const existing = await adminDb<{ id: string }[]>('access_codes', { code: 'eq.' + code, select: 'id', limit: '1' })
+    if (existing.length) return adminJson({ error: '이미 사용 중인 코드입니다.' }, 409)
+    createdOrgId = randomUUID()
+    const [org] = await adminDb<{ id: string; name: string }[]>('partner_organizations', {}, { method: 'POST', body: JSON.stringify({
+      id: createdOrgId, name: orgName, org_type: 'school', is_active: true, contact_name: input.contactName || null, contact_email: input.contactEmail || null,
+    }) })
+    if (!org?.id) throw new Error('Organization not created')
+    const [issued] = await adminDb<{ id: string; code: string }[]>('access_codes', {}, { method: 'POST', body: JSON.stringify({
+      code, organization_id: org.id, label: orgName + ' 기관 코드', is_active: true, max_usage: null,
+    }) })
+    if (!issued?.id) throw new Error('Code not created')
+    return adminJson({ success: true, data: { org, code: issued } })
   } catch (error) {
-    console.error('[Admin Direct Issue Error]:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    if (createdOrgId) {
+      // Compensate only this request's new organization; never touch existing organizations.
+      try { await adminDb('partner_organizations', { id: 'eq.' + createdOrgId }, { method: 'DELETE' }) }
+      catch { console.error('[Direct issue] Organization cleanup requires reconciliation:', createdOrgId) }
+    }
+    return adminError(error)
   }
 }
-

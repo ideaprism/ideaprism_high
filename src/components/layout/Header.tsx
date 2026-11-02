@@ -7,12 +7,17 @@ import { Search, Info, Menu, X, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { useSchool } from '@/components/school/SchoolProvider'
 import { SchoolCrest } from '@/components/school/SchoolCrest'
+import { SEARCH_HASH, spotlightSearchBar } from '@/lib/search-focus'
 
 export function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const school = useSchool()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const handleSearchMenuClick = (event: React.MouseEvent) => {
+    if (spotlightSearchBar(pathname === '/' ? 'center' : 'start')) event.preventDefault()
+    setIsMenuOpen(false)
+  }
 
   const handleServiceIntroClick = () => {
     if (pathname === '/') {
@@ -47,7 +52,7 @@ export function Header() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
-          <Link href="/search" className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-primary/10 rounded-full transition-all">
+          <Link href={`/${SEARCH_HASH}`} onClick={handleSearchMenuClick} className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-primary/10 rounded-full transition-all">
             발명품 검색
           </Link>
           <button
@@ -84,7 +89,7 @@ export function Header() {
       {isMenuOpen && (
         <div className="md:hidden border-t border-outline-variant/20 bg-surface px-4 py-3">
           <nav className="flex flex-col gap-2">
-            <Link href="/search" className="px-3 py-3 font-bold rounded-xl hover:bg-primary/10" onClick={() => setIsMenuOpen(false)}>
+            <Link href={`/${SEARCH_HASH}`} className="px-3 py-3 font-bold rounded-xl hover:bg-primary/10" onClick={handleSearchMenuClick}>
               발명품 검색
             </Link>
             <button onClick={() => { handleSearchGuideClick(); setIsMenuOpen(false) }} className="px-3 py-3 text-left font-bold rounded-xl hover:bg-primary/10">

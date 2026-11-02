@@ -10,7 +10,10 @@ function isSchoolPath(pathname: string): boolean {
     pathname.startsWith('/inventions/') ||
     pathname === '/api/search' ||
     pathname.startsWith('/api/search/') ||
+    pathname === '/api/inventions' ||
+    pathname.startsWith('/api/inventions/') ||
     pathname.startsWith('/api/kipris/') ||
+    pathname === '/api/chat' ||
     pathname.startsWith('/api/chat/') ||
     pathname === '/test' ||
     pathname.startsWith('/test/')
@@ -23,8 +26,8 @@ function unauthorizedForPath(request: NextRequest): NextResponse {
   }
 
   const url = request.nextUrl.clone()
-  url.pathname = '/'
-  url.searchParams.set('adminAuth', 'required')
+  url.pathname = '/admin-login'
+  url.search = ''
   return NextResponse.redirect(url)
 }
 
@@ -32,7 +35,7 @@ function schoolRequired(request: NextRequest): NextResponse {
   if (request.nextUrl.pathname.startsWith('/api/')) {
     return NextResponse.json(
       { error: 'Unauthorized', message: '학교 코드 인증이 필요합니다.' },
-      { status: 401 }
+      { status: 401, headers: { 'Cache-Control': 'private, no-store' } }
     )
   }
 
@@ -44,7 +47,9 @@ function schoolRequired(request: NextRequest): NextResponse {
 
 export async function middleware(request: NextRequest) {
   if (request.method === 'OPTIONS') {
-    return NextResponse.next()
+    const response = NextResponse.next()
+    response.headers.set('Cache-Control', 'private, no-store')
+    return response
   }
 
   if (isSchoolPath(request.nextUrl.pathname)) {
@@ -55,7 +60,9 @@ export async function middleware(request: NextRequest) {
       if (token) response.cookies.delete(SCHOOL_SESSION_COOKIE)
       return response
     }
-    return NextResponse.next()
+    const response = NextResponse.next()
+    response.headers.set('Cache-Control', 'private, no-store')
+    return response
   }
 
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value
@@ -70,7 +77,9 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  return NextResponse.next()
+  const response = NextResponse.next()
+  response.headers.set('Cache-Control', 'private, no-store')
+  return response
 }
 
 export const config = {
@@ -83,6 +92,7 @@ export const config = {
     '/inventions/:path*',
     '/api/search',
     '/api/search/:path*',
+    '/api/inventions/:path*',
     '/api/kipris/:path*',
     '/api/chat/:path*',
     '/test',

@@ -10,14 +10,20 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { code?: string }
-    const slug = findSchoolSlugByCode(body.code ?? '', SCHOOL_ACCESS_CODES)
+    const body: unknown = await request.json().catch(() => null)
+    if (!body || typeof body !== 'object' || Array.isArray(body) ||
+        !('code' in body) || typeof body.code !== 'string' ||
+        !body.code.trim() || body.code.length > 128) {
+      return NextResponse.json({ ok: false, message: '학교 코드를 입력해 주세요.' },
+        { status: 400, headers: { 'Cache-Control': 'private, no-store' } })
+    }
+    const slug = findSchoolSlugByCode(body.code, SCHOOL_ACCESS_CODES)
 
     if (!slug || !isSchoolSlug(slug)) {
       return NextResponse.json({
         ok: false,
         message: '학교 코드가 맞지 않습니다. 다시 확인해 주세요.',
-      })
+      }, { status: 401, headers: { 'Cache-Control': 'private, no-store' } })
     }
 
     const school = getSchoolBySlug(slug)
@@ -38,7 +44,7 @@ export async function POST(request: NextRequest) {
         region: school.region,
         motto: school.motto,
       },
-    })
+    }, { headers: { 'Cache-Control': 'private, no-store' } })
 
     response.cookies.set(SCHOOL_SESSION_COOKIE, token, {
       httpOnly: true,

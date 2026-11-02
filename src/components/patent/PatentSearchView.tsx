@@ -11,6 +11,8 @@ import {
     keywordsToTemplateFields,
     OPSME_CATEGORIES,
     OPSMETemplateFields,
+    templateFieldsToFormula,
+    type OPSMECategory,
 } from '@/utils/opsme-keywords'
 import { createClient } from '@/utils/supabase/client'
 import type { KiprisSearchResponse, KiprisPatent } from '@/types/kipris'
@@ -37,6 +39,11 @@ export function PatentCard({ patent, index }: { patent: KiprisPatent; index: num
                     </span>
                     <span className="font-semibold text-sm truncate">{patent.inventionTitle}</span>
                 </div>
+                {patent.ipcMatch && (
+                    <span className="mr-2 px-2 py-1 rounded text-xs font-semibold flex-shrink-0 bg-white text-emerald-700" title="검색식의 IPC 분류와 같은 특허">
+                        IPC 일치
+                    </span>
+                )}
                 <span className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${patent.registerNumber ? 'bg-emerald-500' : 'bg-white/30'}`}>
                     {patent.registerStatus || (patent.registerNumber ? '등록' : '공개')}
                 </span>
@@ -257,54 +264,21 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
     const [currentPage, setCurrentPage] = useState(1)
     const [searchError, setSearchError] = useState<string | null>(null)
     const [hasSearched, setHasSearched] = useState(false)
+    // 서버가 실제로 KIPRIS에 보낸 질의 (표시식과 다를 수 있음 → 화면에 그대로 알림)
+    const [applied, setApplied] = useState<{
+        query: string | null
+        relaxed: boolean
+        ipc: string | null
+        ipcApplied: boolean
+        operatorMode: boolean
+    } | null>(null)
     const numOfRows = 10
     const totalPages = Math.ceil(totalCount / numOfRows)
 
     // KIPRIS 검색식 자동 생성 (활성화된 카테고리만 포함)
     const generatedFormula = useMemo(() => {
-        const parts: string[] = []
-
-        // IPC 코드
-        if (templateFields.ipc.trim()) {
-            parts.push(`IPC=[${templateFields.ipc.trim()}]`)
-        }
-
-        // O: 발명대상
-        if (activeCategories.O && templateFields.object.trim()) {
-            const keywords = templateFields.object.split(',').map(k => k.trim()).filter(k => k)
-            if (keywords.length === 1) parts.push(keywords[0])
-            else if (keywords.length > 1) parts.push(`(${keywords.join('+')})`)
-        }
-
-        // P: 문제점
-        if (activeCategories.P && templateFields.problem.trim()) {
-            const keywords = templateFields.problem.split(',').map(k => k.trim()).filter(k => k)
-            if (keywords.length === 1) parts.push(keywords[0])
-            else if (keywords.length > 1) parts.push(`(${keywords.join('+')})`)
-        }
-
-        // S: 해결수단
-        if (activeCategories.S && templateFields.solution.trim()) {
-            const keywords = templateFields.solution.split(',').map(k => k.trim()).filter(k => k)
-            if (keywords.length === 1) parts.push(keywords[0])
-            else if (keywords.length > 1) parts.push(`(${keywords.join('+')})`)
-        }
-
-        // M: 방법/원리
-        if (activeCategories.M && templateFields.method.trim()) {
-            const keywords = templateFields.method.split(',').map(k => k.trim()).filter(k => k)
-            if (keywords.length === 1) parts.push(keywords[0])
-            else if (keywords.length > 1) parts.push(`(${keywords.join('+')})`)
-        }
-
-        // E: 효과
-        if (activeCategories.E && templateFields.effect.trim()) {
-            const keywords = templateFields.effect.split(',').map(k => k.trim()).filter(k => k)
-            if (keywords.length === 1) parts.push(keywords[0])
-            else if (keywords.length > 1) parts.push(`(${keywords.join('+')})`)
-        }
-
-        return parts.join('*')
+        const categories = (Object.keys(OPSME_CATEGORIES) as OPSMECategory[]).filter((key) => activeCategories[key])
+        return templateFieldsToFormula(templateFields, categories)
     }, [templateFields, activeCategories])
 
     useEffect(() => {
@@ -319,11 +293,11 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
             setFormulaLoading(true)
             try {
                 const supabase = createClient()
-                const { data, error } = (await supabase
-                    .from('kipris_search_keywords' as any)
+                const { data, error } = await supabase
+                    .from('kipris_search_keywords')
                     .select('kipris_search_keywords')
                     .eq('invention_id', invention.id)
-                    .single()) as any
+                    .single()
 
                 if (error || !data) {
                     // 데이터가 없으면 기본값 사용
@@ -387,30 +361,41 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
         setSearchError(null)
 
         try {
-            const cleanQuery = searchQuery
-                .replace(/\*/g, ' ')
-                .replace(/\+/g, ' ')
-                .replace(/[()]/g, '')
-                .replace(/IPC=\[([^\]]+)\]/g, '$1')
-                .replace(/\s+/g, ' ')
-                .trim()
-
+            // 검색식을 그대로 서버에 보내고, 서버가 구조(IPC / AND 그룹 / OR 대체어)를 해석해
+            // 실제 KIPRIS 질의를 만든다. 실제로 쓴 질의는 appliedQuery로 돌려받아 화면에 표시.
             const params = new URLSearchParams()
-            params.set('word', cleanQuery)
+            params.set('q', searchQuery.trim())
             params.set('pageNo', page.toString())
             params.set('numOfRows', numOfRows.toString())
 
             const response = await fetch(`/api/kipris/search?${params.toString()}`)
-            const data: KiprisSearchResponse = await response.json()
+
+            // 서버가 JSON이 아닌 응답(게이트웨이 오류 등)을 내려도 안전하게 처리
+            const data: KiprisSearchResponse | null = await response.json().catch(() => null)
+
+            if (!data) {
+                setSearchError(`특허 검색 서버 응답 오류가 발생했습니다. (코드 ${response.status}) 잠시 후 다시 시도해 주세요.`)
+                setResults([])
+                setTotalCount(0)
+                return
+            }
 
             if (data.success) {
                 setResults(data.items)
                 setTotalCount(data.totalCount)
                 setCurrentPage(page)
+                setApplied({
+                    query: data.appliedQuery ?? null,
+                    relaxed: !!data.relaxed,
+                    ipc: data.ipc ?? null,
+                    ipcApplied: !!data.ipcApplied,
+                    operatorMode: !!data.operatorMode,
+                })
             } else {
                 setSearchError(data.error || '검색 중 오류가 발생했습니다.')
                 setResults([])
                 setTotalCount(0)
+                setApplied(null)
             }
         } catch (error) {
             setSearchError('API 호출 중 오류가 발생했습니다.')
@@ -754,6 +739,7 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
                                         <span>적정 검색결과를 위해 발명대상과 해결수단이 기본 선택되어 표시됩니다.</span>
                                     </p>
                                     <p className="pl-5">쉼표(,)로 구분하여 여러 키워드를 입력할 수 있습니다. 여러 키워드는 OR(+) 조건으로 묶입니다.</p>
+                                    <p className="pl-5">위 검색식은 KIPRIS 사이트에 그대로 붙여 쓸 수 있어요(복사 버튼). 이 화면에서 바로 찾은 결과는 검색 결과 위 &lsquo;실제 조회&rsquo;에 적힌 질의로 찾은 거예요.</p>
                                 </div>
                             </div>
                         </>
@@ -762,6 +748,29 @@ export function PatentSearchView({ invention }: { invention: InventionV2 }) {
 
                 {/* 검색 결과 */}
                 <div className="px-6 py-4">
+                    {!formulaLoading && !searchLoading && applied?.query && (
+                        <div className="mb-3 text-xs text-on-surface-variant bg-surface-container-low border border-outline-variant/30 rounded-lg px-3 py-2 space-y-1">
+                            <p>
+                                <span className="font-semibold text-on-surface">실제 조회:</span>{' '}
+                                <span className="font-mono">{applied.query}</span>
+                                {!applied.operatorMode && (
+                                    <span className="text-on-surface-variant/70"> (각 항목의 첫 키워드로 검색)</span>
+                                )}
+                            </p>
+                            {applied.relaxed && (
+                                <p className="text-amber-700">
+                                    모든 조건을 만족하는 특허가 없어 일부 항목을 빼고 다시 찾았어요.
+                                </p>
+                            )}
+                            {applied.ipc && !applied.ipcApplied && (
+                                <p className="text-amber-700">
+                                    IPC <span className="font-mono">{applied.ipc}</span> 조건으로는 결과가 없어 IPC를 빼고 찾았어요.
+                                    같은 분류의 특허에는 <span className="font-semibold text-emerald-700">IPC 일치</span> 표시가 붙어요.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {!formulaLoading && totalCount > 0 && (
                         <div className="mb-4 text-sm text-on-surface-variant">
                             총 <span className="text-primary font-bold">{totalCount.toLocaleString()}</span>건의

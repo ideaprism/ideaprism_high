@@ -5,8 +5,9 @@ export type SearchNode =
     | { type: 'TERM', value: string }
 
 export function parseSearchQuery(query: string): SearchNode | null {
+    if (query.length > 1000) return null;
     const tokens = tokenize(query);
-    if (tokens.length === 0) return null;
+    if (!tokens || tokens.length === 0 || tokens.length > 128) return null;
 
     const parser = new Parser(tokens);
     return parser.parse();
@@ -16,7 +17,7 @@ export function parseSearchQuery(query: string): SearchNode | null {
 type TokenType = 'WORD' | 'AND' | 'OR' | 'LPAREN' | 'RPAREN';
 type Token = { type: TokenType; value: string };
 
-function tokenize(input: string): Token[] {
+function tokenize(input: string): Token[] | null {
     const tokens: Token[] = [];
     let i = 0;
 
@@ -37,11 +38,12 @@ function tokenize(input: string): Token[] {
                 value += input[i];
                 i++;
             }
+            if (i >= input.length) return null;
             i++; // skip closing quote
             // Only add if not empty
-            if (value) {
+            if (value.trim()) {
                 tokens.push({ type: 'WORD', value });
-            }
+            } else return null;
             continue;
         }
 
@@ -114,9 +116,9 @@ class Parser {
 
     public parse(): SearchNode | null {
         try {
-            return this.expression();
-        } catch (e) {
-            console.error(e);
+            const node = this.expression();
+            return this.current === this.tokens.length ? node : null;
+        } catch {
             return null;
         }
     }
@@ -162,7 +164,7 @@ class Parser {
     private factor(): SearchNode {
         if (this.match('LPAREN')) {
             const node = this.expression();
-            this.match('RPAREN'); // Consume closing paren if present
+            if (!this.match('RPAREN')) throw new Error('Missing closing parenthesis');
             return node;
         }
 
@@ -172,14 +174,23 @@ class Parser {
             return { type: 'TERM', value: token.value };
         }
 
-        // Fallback logic for unexpected tokens to avoid crashing
-        if (token) {
-            this.consume();
-            return { type: 'TERM', value: token.value };
-        }
-
-        throw new Error('Unexpected end of input');
+        throw new Error('Expected a search term');
     }
+}
+
+/**
+ * 검색어 값 정리 (PostgREST 필터 문자열 주입 방지)
+ * - , ( ) " \ : 필터 구문 문자 → 제거
+ * - % _ * : ilike 와일드카드 → 제거
+ * - . : 'col.op.value' 구분자와 혼동 방지 → 공백
+ */
+export function sanitizeTerm(value: string): string {
+    return value
+        .replace(/[,()"'\\%_*:]/g, '')
+        .replace(/\./g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 50);
 }
 
 // Convert Parse Tree to PostgREST Filter String
@@ -188,21 +199,23 @@ export function buildPostgrestFilter(node: SearchNode, columns: string[]): strin
     if (node.type === 'TERM') {
         // Term should match ANY of the columns (OR)
         // original_title.ilike.%val%,simple_summary.ilike.%val%
-        // We return the raw conditions joined by comma. 
-        // The caller (supabase.or) will wrap this appropriately.
-        return columns.map(col => `${col}.ilike.%${node.value}%`).join(',');
+        const value = sanitizeTerm(node.value);
+        if (!value) return '';
+        // 따옴표 구문 내부의 공백은 그대로 ilike 패턴에 들어감 (PostgREST는 공백 허용)
+        return columns.map(col => `${col}.ilike.%${value}%`).join(',');
     }
 
-    if (node.type === 'AND') {
+    if (node.type === 'AND' || node.type === 'OR') {
         const left = buildPostgrestFilter(node.left, columns);
         const right = buildPostgrestFilter(node.right, columns);
-        return `and(${left},${right})`;
-    }
-
-    if (node.type === 'OR') {
-        const left = buildPostgrestFilter(node.left, columns);
-        const right = buildPostgrestFilter(node.right, columns);
-        return `or(${left},${right})`;
+        // 한쪽이 비면(정리 후 빈 단어) 다른 쪽만 사용
+        if (!left) return right;
+        if (!right) return left;
+        // TERM은 'a,b,c'(=OR 목록)이므로 or()로 감싸야 AND 안에서 의미가 유지됨
+        const wrap = (child: SearchNode, s: string) => (child.type === 'TERM' ? `or(${s})` : s);
+        const l = wrap(node.left, left);
+        const r = wrap(node.right, right);
+        return node.type === 'AND' ? `and(${l},${r})` : `or(${l},${r})`;
     }
 
     return '';

@@ -6,6 +6,7 @@ import { Search, ChevronDown, Check, X, Sparkles, Lock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PROBLEM_TYPES, POPULAR_KEYWORDS } from '@/constants/home'
 import { cn } from '@/lib/utils'
+import { SEARCH_HASH, spotlightSearchBar } from '@/lib/search-focus'
 
 interface HomeSearchSectionProps {
   isGuestMode: boolean
@@ -18,6 +19,13 @@ export function HomeSearchSection({ isGuestMode, onOpenGuide }: HomeSearchSectio
   const [selectedProblemType, setSelectedProblemType] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // 다른 화면에서 '발명품 검색'으로 들어오면(/#search) 검색창 강조
+  useEffect(() => {
+    if (window.location.hash !== SEARCH_HASH) return
+    const timer = window.setTimeout(() => spotlightSearchBar('center'), 300)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -71,7 +79,7 @@ export function HomeSearchSection({ isGuestMode, onOpenGuide }: HomeSearchSectio
           )}
         </AnimatePresence>
 
-        <div className={`w-full flex items-center h-[56px] bg-white border-2 border-primary/10 hover:border-primary/30 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 rounded-2xl transition-all duration-300 shadow-sm hover:shadow-md px-5 ${isGuestMode ? 'opacity-70 pointer-events-none grayscale-[0.2]' : ''}`}>
+        <div data-search-bar className={`w-full flex items-center h-[56px] bg-white border-2 border-primary/10 hover:border-primary/30 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10 rounded-2xl transition-all duration-300 shadow-sm hover:shadow-md px-5 ${isGuestMode ? 'opacity-70 pointer-events-none grayscale-[0.2]' : ''}`}>
           <Search className="w-5 h-5 text-slate-400 flex-shrink-0 mr-3" />
           <input
             type="text"

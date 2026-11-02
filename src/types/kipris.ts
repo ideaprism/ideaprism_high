@@ -27,6 +27,7 @@ export interface KiprisPatent {
     abstract?: string;           // 초록
     bigDrawing?: string;         // 대표도면 URL
     drawing?: string;            // 도면 URL
+    ipcMatch?: boolean;          // 검색식 IPC와 일치 여부 (q 방식 검색에서만)
 }
 
 // 검색 응답
@@ -37,6 +38,16 @@ export interface KiprisSearchResponse {
     pageNo: number;
     numOfRows: number;
     error?: string;
+    /** 실제로 KIPRIS에 보낸 질의 (사람이 읽는 형태) */
+    appliedQuery?: string;
+    /** 0건이라 조건을 줄여 다시 조회했는지 */
+    relaxed?: boolean;
+    /** 실제 질의에 IPC 조건을 넣었는지 (0건이면 IPC를 빼고 다시 찾음) */
+    ipcApplied?: boolean;
+    /** 검색식에서 읽은 IPC 코드 */
+    ipc?: string | null;
+    /** KIPRIS에 *, + 연산자를 그대로 보냈는지 */
+    operatorMode?: boolean;
 }
 
 // 원본 XML 파싱 후 item 구조

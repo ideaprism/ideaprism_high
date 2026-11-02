@@ -9,6 +9,12 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      kipris_search_keywords: {
+        Row: { invention_id: string; kipris_search_keywords: string; created_at: string | null; updated_at: string | null }
+        Insert: { invention_id: string; kipris_search_keywords: string; created_at?: string | null; updated_at?: string | null }
+        Update: { invention_id?: string; kipris_search_keywords?: string; created_at?: string | null; updated_at?: string | null }
+        Relationships: []
+      }
       categories: {
         Row: { id: number; name: string }
         Insert: { id?: number; name: string }

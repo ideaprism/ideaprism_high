@@ -100,3 +100,22 @@ body {
   font-family: "Batang", "BatangChe", serif;
   word-break: keep-all;
 }
+
+/* '발명품 검색' 메뉴를 누르면 검색창이 두 번 반짝이며 '여기에 입력' 신호를 줌 (src/lib/search-focus.ts) */
+@keyframes search-spotlight {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(59 130 246 / 0); transform: scale(1); }
+  25% { box-shadow: 0 0 0 8px rgb(59 130 246 / 0.35); transform: scale(1.02); }
+  50% { box-shadow: 0 0 0 0 rgb(59 130 246 / 0); transform: scale(1); }
+  75% { box-shadow: 0 0 0 8px rgb(59 130 246 / 0.35); transform: scale(1.02); }
+}
+
+.search-spotlight {
+  animation: search-spotlight 1.6s ease-in-out;
+  border-color: var(--primary) !important;
+}
+
+[data-search-bar] {
+  scroll-margin-top: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) { .search-spotlight { animation: none; } }

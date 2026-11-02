@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { X, ExternalLink, ImageIcon, BadgeCheck, ChevronDown, ChevronUp, LucideIcon, Search } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { X, ExternalLink, ImageIcon, BadgeCheck, ChevronDown, ChevronUp, LucideIcon, Search, Loader2 } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { Invention } from './InventionCard'
@@ -38,7 +38,7 @@ const getIconComponent = (iconName: string): LucideIcon | null => {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join('')
 
-    return (LucideIcons as any)[pascalCase] || null
+    return (LucideIcons as unknown as Record<string, LucideIcon>)[pascalCase] || null
 }
 
 function ExpandableSection({ title, content, defaultOpen = false }: ExpandableSectionProps) {
@@ -77,7 +77,41 @@ function ExpandableSection({ title, content, defaultOpen = false }: ExpandableSe
     )
 }
 
-export function InventionDetailModal({ invention, onClose }: InventionDetailModalProps) {
+/** 상세 모달을 열 때 따로 불러오는 본문 필드 */
+type InventionDetailFields = Pick<
+    Invention,
+    'invention_motive' | 'detailed_summary' | 'problem' | 'solution' | 'next_step' | 'curriculum' | 'sdg'
+>
+
+export function InventionDetailModal({ invention: baseInvention, onClose }: InventionDetailModalProps) {
+    // 목록 API는 카드 필드만 보내므로, 본문은 모달을 열 때 단건 조회해 합친다
+    const [detail, setDetail] = useState<InventionDetailFields | null>(null)
+    const [detailState, setDetailState] = useState<'loading' | 'done' | 'error'>('loading')
+
+    useEffect(() => {
+        const controller = new AbortController()
+        setDetail(null)
+        setDetailState('loading')
+        fetch(`/api/inventions/${encodeURIComponent(baseInvention.id)}`, { signal: controller.signal })
+            .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+            .then((data: InventionDetailFields) => {
+                setDetail(data)
+                setDetailState('done')
+            })
+            .catch((err) => {
+                if (err?.name === 'AbortError') return
+                console.error('[InventionDetailModal] detail load failed:', err)
+                setDetailState('error')
+            })
+        return () => controller.abort()
+    }, [baseInvention.id])
+
+    const invention = useMemo<Invention>(
+        () => (detail ? { ...baseInvention, ...detail } : baseInvention),
+        [baseInvention, detail]
+    )
+    const detailLoading = detailState === 'loading'
+
     const [activeTab, setActiveTab] = useState<'basic' | 'detail'>('basic')
     const [viewMode, setViewMode] = useState<'invention' | 'patent'>('invention')
     const [isTransitioning, setIsTransitioning] = useState(false)
@@ -157,8 +191,9 @@ export function InventionDetailModal({ invention, onClose }: InventionDetailModa
                         /* 발명 상세 뷰 */
                         <div className="flex flex-col lg:flex-row h-full overflow-hidden">
                             {/* Left: Image Section */}
-                            <div className="w-full lg:w-[45%] bg-surface-container-low p-8 flex items-center justify-center border-r border-outline-variant/20">
-                                <div className="relative w-full aspect-[4/3] bg-surface rounded-lg shadow-sm border border-outline-variant/30 flex items-center justify-center overflow-hidden">
+                            {/* 이미지는 최대 400×300px까지만 커지고, 좁은 화면(세로 배치)에서는 화면 높이의 30%로 줄여 아래 정보가 보이게 함 */}
+                            <div className="w-full lg:w-[45%] flex-shrink-0 bg-surface-container-low p-4 lg:p-8 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-outline-variant/20">
+                                <div className="relative w-full max-w-[400px] aspect-[4/3] max-h-[30vh] lg:max-h-[300px] bg-surface rounded-lg shadow-sm border border-outline-variant/30 flex items-center justify-center overflow-hidden">
                                     {invention.drawing_url ? (
                                         <img
                                             src={invention.drawing_url}
@@ -175,7 +210,7 @@ export function InventionDetailModal({ invention, onClose }: InventionDetailModa
                             </div>
 
                             {/* Right: Info Section */}
-                            <div className="w-full lg:w-[55%] flex flex-col bg-surface h-full overflow-hidden">
+                            <div className="w-full lg:w-[55%] flex flex-col bg-surface flex-1 min-h-0 lg:h-full overflow-hidden">
                                 {/* Tabs */}
                                 <div className="flex border-b border-outline-variant/20 px-8 pt-4">
                                     <button
@@ -233,7 +268,7 @@ export function InventionDetailModal({ invention, onClose }: InventionDetailModa
                                                     </tr>
                                                     <tr className="border-b border-dashed border-outline-variant/30">
                                                         <th className="py-3 font-semibold text-on-surface-variant w-24">관련교과</th>
-                                                        <td className="py-3 pl-4 text-on-surface">{invention.curriculum || '-'}</td>
+                                                        <td className="py-3 pl-4 text-on-surface">{invention.curriculum || (detailLoading ? '…' : '-')}</td>
                                                     </tr>
                                                     <tr className="border-b border-dashed border-outline-variant/30">
                                                         <th className="py-3 font-semibold text-on-surface-variant w-24">ESG 과제</th>
@@ -306,6 +341,17 @@ export function InventionDetailModal({ invention, onClose }: InventionDetailModa
                                         </div>
                                     ) : (
                                         <div className="space-y-8 animate-in fade-in duration-300">
+                                            {detailLoading && (
+                                                <div className="flex items-center justify-center py-16 text-on-surface-variant">
+                                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                                    <span className="ml-3 text-sm">상세 설명을 불러오는 중...</span>
+                                                </div>
+                                            )}
+                                            {detailState === 'error' && (
+                                                <div className="text-center py-10 text-sm text-on-surface-variant">
+                                                    상세 설명을 불러오지 못했어요. 잠시 후 다시 열어 주세요.
+                                                </div>
+                                            )}
                                             <div className="space-y-4">
                                                 <ExpandableSection
                                                     title="발명 동기"
@@ -334,7 +380,7 @@ export function InventionDetailModal({ invention, onClose }: InventionDetailModa
                                                 />
                                             </div>
 
-                                            {!invention.invention_motive && !invention.detailed_summary && !invention.problem && !invention.solution && !invention.next_step && (
+                                            {detailState === 'done' && !invention.invention_motive && !invention.detailed_summary && !invention.problem && !invention.solution && !invention.next_step && (
                                                 <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant font-medium">
                                                     <BadgeCheck className="w-12 h-12 mb-4 opacity-30" />
                                                     <p>상세 설명 정보가 등록되지 않은 발명품입니다.</p>

@@ -63,7 +63,7 @@ export function InventionCard({ invention, onClick }: InventionCardProps) {
                 
                 {/* Summary (Original Minimalist) */}
                 <p className={`mt-2 text-xs text-on-surface-variant line-clamp-2 leading-relaxed ${invention.isRestricted ? 'blur-[4px] select-none text-slate-400' : ''}`}>
-                    {invention.simple_summary || invention.detailed_summary || invention.invention_motive || "발명 설명을 불러오는 중입니다."}
+                    {invention.simple_summary || invention.detailed_summary || invention.invention_motive || "요약이 없는 발명품입니다. 눌러서 자세히 보세요."}
                 </p>
 
                 <div className="mt-auto pt-3 flex items-center justify-between">

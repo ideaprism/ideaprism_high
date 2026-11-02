@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { AboutModal } from './AboutModal'
 import { useSchool } from '@/components/school/SchoolProvider'
 import { SchoolCrest } from '@/components/school/SchoolCrest'
+import { OPERATOR } from '@/constants/site'
 
 export function Footer() {
   const pathname = usePathname()
@@ -70,8 +71,9 @@ export function Footer() {
               <h4 className="mb-4 font-semibold text-on-surface">이용문의</h4>
               {showContact ? (
                 <div className="text-sm text-on-surface-variant">
-                  <p className="mb-1 font-medium text-on-surface">Steve Changs</p>
-                  <p>010-2019-7117</p>
+                  <p className="mb-1 font-medium text-on-surface">{OPERATOR.name}</p>
+                  <p>{OPERATOR.phone}</p>
+                  <a href={`mailto:${OPERATOR.email}`}>{OPERATOR.email}</a>
                 </div>
               ) : (
                 <button onClick={() => setShowContact(true)} className="-ml-3 inline-block rounded-full px-3 py-1.5 text-sm text-on-surface-variant hover:bg-primary/10">
@@ -81,6 +83,10 @@ export function Footer() {
             </div>
           </div>
           <div className="border-t border-outline-variant/30 pt-8 text-center text-xs text-on-surface-variant">
+            <div className="mb-3 flex justify-center gap-5">
+              <Link href="/privacy" className="hover:underline">개인정보처리방침</Link>
+              <Link href="/terms" className="hover:underline">이용약관</Link>
+            </div>
             <p>© {new Date().getFullYear()} {school ? school.name : 'IdeaPrism High'}</p>
           </div>
         </div>

@@ -1,21 +1,26 @@
 'use client'
-
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-
-export default function DeprecatedInquiriesPage() {
-    const router = useRouter()
-
-    useEffect(() => {
-        router.replace('/admin/codes')
-    }, [router])
-
-    return (
-        <div className="flex items-center justify-center h-96">
-            <div className="text-center">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-                <p className="text-slate-500 font-bold">Redirecting to Codes Management...</p>
-            </div>
-        </div>
-    )
+import { useEffect, useState } from 'react'
+type Inquiry = { id: string; org_name: string; contact_name: string; contact_email: string; purpose: string; status: string | null; created_at: string | null }
+export default function InquiriesPage() {
+  const [items,setItems] = useState<Inquiry[]>([])
+  const [loading,setLoading] = useState(true)
+  const [error,setError] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/admin/inquiries', { signal: controller.signal }).then(async response => {
+      const result = await response.json()
+      if (!response.ok) throw Error(result.error || '문의 조회에 실패했습니다.')
+      setItems(result.data)
+    }).catch(cause => { if(!controller.signal.aborted) setError(cause instanceof Error ? cause.message : '조회 실패') })
+      .finally(() => { if(!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [])
+  return <div className="space-y-6"><h1 className="text-3xl font-bold">기존 제휴 문의</h1><p className="text-slate-500">공용 서비스에 접수된 최근 100건입니다. High는 새 제휴 문의를 받지 않습니다.</p>
+    {error && <p role="alert" className="text-red-700">{error}</p>}
+    {loading ? <p>불러오는 중입니다.</p> : !error && !items.length ? <p>접수된 문의가 없습니다.</p> : items.map(item =>
+      <article key={item.id} className="rounded-2xl border bg-white p-6 space-y-3"><h2 className="text-xl font-bold">{item.org_name}</h2>
+        <p className="text-sm text-slate-500">{item.contact_name} · {item.contact_email}</p><p className="whitespace-pre-wrap">{item.purpose}</p>
+        <p className="text-sm text-slate-500">{item.status || '상태 미지정'} · {item.created_at ? new Date(item.created_at).toLocaleDateString('ko-KR') : ''}</p>
+      </article>)}
+  </div>
 }

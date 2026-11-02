@@ -1,24 +1,6 @@
 import type { NextConfig } from "next";
-import dotenv from 'dotenv';
-import path from 'path';
-
-// Force load env vars from file to override polluted shell envs
-// This fixes the issue where the terminal session is holding incorrect old DB configs
-try {
-  dotenv.config({ path: path.resolve(process.cwd(), '.env.local'), override: true });
-  dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
-  console.log('[Config] Enforced environment variables from .env files.');
-} catch (e) {
-  console.error('Failed to load env files manually:', e);
-}
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -34,6 +16,11 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  // 타입 검사는 빌드 시 항상 실행 (2026-08-10부터 활성화)
+  // ESLint는 기존 지적 174건을 단계적으로 정리한 뒤 켤 예정
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 

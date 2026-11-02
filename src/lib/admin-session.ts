@@ -4,6 +4,8 @@ export const ADMIN_SESSION_COOKIE = 'ideaprism_admin_session';
 const DEFAULT_TTL_SECONDS = 60 * 60 * 8;
 
 export interface AdminSessionPayload {
+  aud: 'ideaprism-high-admin';
+  codeId?: string;
   orgId: string;
   orgName: string;
   orgType: string;
@@ -11,6 +13,7 @@ export interface AdminSessionPayload {
 }
 
 interface CreateSessionInput {
+  codeId?: string;
   orgId: string;
   orgName: string;
   orgType: string;
@@ -63,6 +66,8 @@ async function sign(value: string, secret: string): Promise<string> {
 export async function createAdminSessionToken(input: CreateSessionInput): Promise<string> {
   const nowSeconds = Math.floor(Date.now() / 1000);
   const payload: AdminSessionPayload = {
+    aud: 'ideaprism-high-admin',
+    codeId: input.codeId,
     orgId: input.orgId,
     orgName: input.orgName,
     orgType: input.orgType,
@@ -76,20 +81,23 @@ export async function createAdminSessionToken(input: CreateSessionInput): Promis
 
 export async function verifyAdminSessionToken(token: string): Promise<AdminSessionPayload | null> {
   try {
-    const [payloadEncoded, signature] = token.split('.');
-    if (!payloadEncoded || !signature) return null;
-
-    const expected = await sign(payloadEncoded, getSecret());
-    if (expected !== signature) return null;
+    if (token.length > 4096) return null;
+    const parts = token.split('.');
+    if (parts.length !== 2 || parts.some(part => !/^[A-Za-z0-9_-]+$/.test(part))) return null;
+    const [payloadEncoded, signature] = parts;
+    const key = await importHmacKey(getSecret());
+    if (!await crypto.subtle.verify('HMAC', key, new Uint8Array(fromBase64Url(signature)),
+      new TextEncoder().encode(payloadEncoded))) return null;
 
     const payloadJson = new TextDecoder().decode(fromBase64Url(payloadEncoded));
     const payload = JSON.parse(payloadJson) as AdminSessionPayload;
 
-    if (!payload.orgId || !payload.orgName || !payload.orgType || !payload.exp) return null;
+    if (payload.aud !== 'ideaprism-high-admin' || typeof payload.orgId !== 'string' || !payload.orgId ||
+      typeof payload.orgName !== 'string' || !payload.orgName || typeof payload.orgType !== 'string') return null;
     if (!isAdminOrgType(payload.orgType)) return null;
 
     const nowSeconds = Math.floor(Date.now() / 1000);
-    if (payload.exp <= nowSeconds) return null;
+    if (!Number.isSafeInteger(payload.exp) || payload.exp <= nowSeconds) return null;
 
     return payload;
   } catch {
